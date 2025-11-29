@@ -1,0 +1,25 @@
+# Build artifacts
+obj/
+bin/
+*.o
+*.a
+*.so
+
+# Executables
+server/bin/
+client/bin/
+
+# Storage
+server/storage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
