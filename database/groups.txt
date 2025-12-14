@@ -1,2 +1,0 @@
-group_id,group_name,user_count,group_admin_id
-0,ABC,2,0
