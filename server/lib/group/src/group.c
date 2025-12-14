@@ -30,11 +30,13 @@ int append_group_to_file(const Group group) {
         group.group_id,
         group.admin_id,
         group.name) < 0) {
-    perror("Failed to write to groups.txt");
-    fclose(fp);
-    return -1;
+        perror("Failed to write to groups.txt");
+        fclose(fp);
+        return -1;
     }
 
+    // Close to flush contents before returning
+    fclose(fp);
     return 0;
 }
 

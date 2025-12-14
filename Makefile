@@ -42,6 +42,14 @@ server: $(ALL_SERVER_SRC)
 client: $(CLIENT_SRC)
 	$(CC) $(CFLAGS) -o $(BIN_DIR)/client $(CLIENT_SRC)
 
+# Build and run unit test for group module
+test-group: directories
+	$(CC) -Wall -Wextra -std=c11 \
+		server/lib/group/src/group.c server/lib/group/src/test_group.c \
+		-I server/lib/group/include \
+		-o $(BIN_DIR)/test_group
+	$(BIN_DIR)/test_group
+
 clean:
 	rm -rf $(BIN_DIR)
 	rm -rf $(OBJ_DIR)
@@ -59,4 +67,4 @@ run-client:
 debug: CFLAGS += -g -DDEBUG
 debug: all
 
-.PHONY: all clean clean-all directories run-server run-client debug
+.PHONY: all clean clean-all directories run-server run-client debug test-group

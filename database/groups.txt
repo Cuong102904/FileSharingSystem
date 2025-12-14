@@ -1,2 +1,3 @@
-group_id,group_name,user_count,group_admin_id
-0,ABC,2,0
+101 1001 alpha
+102 1002 beta
+103 1003 gamma
