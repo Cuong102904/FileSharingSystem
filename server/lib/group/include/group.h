@@ -42,9 +42,10 @@ typedef struct {
  *
  * returns  : a Group structure with the provided information
  */
-Group create_group(int groupd_id, int admin_id, const char* name);
+Group create_group(int group_id, int admin_id, const char* name);
 
 
 int append_group_to_file(Group group);
+int list_groups(void);
 
 #endif
