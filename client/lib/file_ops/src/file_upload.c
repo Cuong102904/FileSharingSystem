@@ -8,7 +8,8 @@
 #define BUFFER_SIZE 1024
 #define CHUNK_SIZE 4096
 
-int file_upload(int client_socket, const char *filepath) {
+int file_upload(int client_socket, const char *filepath,
+                const char *server_path) {
   // Open file for reading
   FILE *file = fopen(filepath, "rb");
   if (!file) {
@@ -21,9 +22,10 @@ int file_upload(int client_socket, const char *filepath) {
   long filesize = ftell(file);
   fseek(file, 0, SEEK_SET);
 
-  // Send UPLOAD command with filename and size
+  // Send UPLOAD command with client path, server path, and size
   char command[BUFFER_SIZE];
-  snprintf(command, sizeof(command), "UPLOAD %s %ld", filepath, filesize);
+  snprintf(command, sizeof(command), "UPLOAD %s %s %ld", filepath, server_path,
+           filesize);
   if (send(client_socket, command, strlen(command), 0) < 0) {
     printf("Error: Failed to send UPLOAD command\n");
     fclose(file);

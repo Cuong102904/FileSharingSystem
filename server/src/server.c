@@ -8,7 +8,6 @@
 
 #include "../include/server.h"
 #include "../lib/auth/include/auth.h"
-#include "../lib/file_ops/include/file_transfer.h"
 #include "../lib/protocol/include/protocol.h"
 #include "../lib/session/include/session.h"
 
@@ -55,7 +54,7 @@ void *handle_client(void *arg) {
       handle_logout(client_socket, cmd.arg1);
       break;
     case CMD_UPLOAD:
-      handle_upload(client_socket, cmd.arg1, cmd.arg2);
+      handle_upload(client_socket, cmd.arg1, cmd.arg2, cmd.arg3);
       break;
     default:
       send_response(client_socket, RESP_ERR_UNKNOWN_CMD);

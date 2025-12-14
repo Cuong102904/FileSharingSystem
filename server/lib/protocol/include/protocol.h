@@ -5,45 +5,49 @@
 
 // Command types
 typedef enum {
-    CMD_REGISTER,
-    CMD_LOGIN,
-    CMD_LOGOUT,
-    CMD_UPLOAD,
-    CMD_DOWNLOAD,
-    CMD_UNKNOWN
+  CMD_REGISTER,
+  CMD_LOGIN,
+  CMD_LOGOUT,
+  CMD_UPLOAD,
+  CMD_DOWNLOAD,
+  CMD_UNKNOWN
 } CommandType;
 
 // Parsed command structure
 typedef struct {
-    CommandType type;
-    char arg1[256];  // username, session_id, or file path (increased size for paths)
-    char arg2[50];   // password or filesize
+  CommandType type;
+  char arg1[256]; // username, session_id, or client file path
+  char arg2[256]; // password, server path, or filesize
+  char arg3[50];  // filesize for UPLOAD command
 } ParsedCommand;
 
 // Response codes
-#define RESP_OK_REGISTER     "OK REGISTER"
-#define RESP_OK_LOGIN        "OK LOGIN"
-#define RESP_OK_LOGOUT       "OK LOGOUT"
+#define RESP_OK_REGISTER "OK REGISTER"
+#define RESP_OK_LOGIN "OK LOGIN"
+#define RESP_OK_LOGOUT "OK LOGOUT"
 #define RESP_OK_UPLOAD_READY "OK UPLOAD_READY"
 #define RESP_OK_UPLOAD_COMPLETE "OK UPLOAD_COMPLETE"
-#define RESP_ERR_ACCOUNT_EXISTS   "ERROR Account already exists"
-#define RESP_ERR_WRONG_PASSWORD   "ERROR Wrong password"
-#define RESP_ERR_USER_NOT_FOUND   "ERROR User not found"
-#define RESP_ERR_INVALID_SESSION  "ERROR Invalid session"
-#define RESP_ERR_SERVER_FULL      "ERROR Server full"
-#define RESP_ERR_DB_ERROR         "ERROR Database error"
-#define RESP_ERR_UNKNOWN_CMD      "ERROR Unknown command"
-#define RESP_ERR_FILE_NOT_FOUND   "ERROR File not found"
-#define RESP_ERR_ACCESS_DENIED    "ERROR Access denied"
-
+#define RESP_ERR_ACCOUNT_EXISTS "ERROR Account already exists"
+#define RESP_ERR_WRONG_PASSWORD "ERROR Wrong password"
+#define RESP_ERR_USER_NOT_FOUND "ERROR User not found"
+#define RESP_ERR_INVALID_SESSION "ERROR Invalid session"
+#define RESP_ERR_SERVER_FULL "ERROR Server full"
+#define RESP_ERR_DB_ERROR "ERROR Database error"
+#define RESP_ERR_UNKNOWN_CMD "ERROR Unknown command"
+#define RESP_ERR_FILE_NOT_FOUND "ERROR File not found"
+#define RESP_ERR_ACCESS_DENIED "ERROR Access denied"
 
 // Parser functions
 CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd);
 
 // Handler functions
-void handle_register(int client_socket, const char *username, const char *password);
-void handle_login(int client_socket, const char *username, const char *password);
+void handle_register(int client_socket, const char *username,
+                     const char *password);
+void handle_login(int client_socket, const char *username,
+                  const char *password);
 void handle_logout(int client_socket, const char *session_id);
+void handle_upload(int client_socket, const char *client_path,
+                   const char *server_path, const char *filesize_str);
 
 // Send response to client
 void send_response(int client_socket, const char *response);
