@@ -17,9 +17,10 @@ AUTH_SRC = $(SERVER_DIR)/lib/auth/src/user.c \
 SESSION_SRC = $(SERVER_DIR)/lib/session/src/session.c
 PROTOCOL_SRC = $(SERVER_DIR)/lib/protocol/src/parser.c \
                $(SERVER_DIR)/lib/protocol/src/handlers.c
+FILE_OPS_SRC = $(SERVER_DIR)/lib/file_ops/src/file_transfer.c
 
 # All server sources
-ALL_SERVER_SRC = $(SERVER_SRC) $(AUTH_SRC) $(SESSION_SRC) $(PROTOCOL_SRC)
+ALL_SERVER_SRC = $(SERVER_SRC) $(AUTH_SRC) $(SESSION_SRC) $(PROTOCOL_SRC) $(FILE_OPS_SRC)
 
 # Client source files
 CLIENT_SRC = $(CLIENT_DIR)/src/client.c

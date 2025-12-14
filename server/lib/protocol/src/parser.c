@@ -27,6 +27,16 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
         sscanf(buffer, "%*s %s", cmd->arg1);
         return CMD_LOGOUT;
     }
+    else if (strcmp(command, "UPLOAD") == 0) {
+        cmd->type = CMD_UPLOAD;
+        sscanf(buffer, "%*s %s %s", cmd->arg1, cmd->arg2); // path, filesize
+        return CMD_UPLOAD;
+    }
+    else if (strcmp(command, "DOWNLOAD") == 0) {
+        cmd->type = CMD_DOWNLOAD;
+        sscanf(buffer, "%*s %s", cmd->arg1); // path
+        return CMD_DOWNLOAD;
+    }
 
     cmd->type = CMD_UNKNOWN;
     return CMD_UNKNOWN;

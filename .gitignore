@@ -4,22 +4,89 @@ bin/
 *.o
 *.a
 *.so
+*.out
+*.exe
 
 # Executables
 server/bin/
 client/bin/
+server/server
+client/client
 
-# Storage
-server/storage/
+# Executables in root (misplaced builds)
+client_bin
+server_bin
 
-# IDE
+# Runtime generated folders
+server/storage/          # Uploaded files
+server/database/         # User database files
+client/downloads/        # Downloaded files (future)
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+# database/*.txt          # User/session flat files
+
+# Log files
+*.log
+logs/
+server/logs/
+client/logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+*.swp
+*.swo
+
+# Core dumps
+core
+core.*
+vgcore.*
+
+# IDE and Editors
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+*.sublime-project
+*.sublime-workspace
+.project
+.cproject
+.settings/
 
-# OS
-.DS_Store
-Thumbs.db
+# OS specific
+.DS_Store           # macOS
+Thumbs.db           # Windows
+Desktop.ini         # Windows
+*.lnk               # Windows shortcuts
+
+# Testing
+test_files/
+*.test
+test_output/
+coverage/
+
+# Documentation build
+docs/_build/
+*.pdf              # Generated PDFs (except if you want to keep them)
+*.aux
+*.toc
+
+# Compressed files (often used for testing large uploads)
+*.zip
+*.tar
+*.tar.gz
+*.rar
+large_test_*.bin   # Test files created with dd
+
+# Debug symbols
+*.dSYM/
+*.su
+*.idb
+*.pdb
 
