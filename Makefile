@@ -1,7 +1,10 @@
 # Makefile for Client-Server Network Programming Project
 
 CC = gcc
-CFLAGS = -Wall -pthread -I server/include
+CFLAGS = -Wall -pthread \
+         -I server/include \
+         -I server/lib/group/include
+
 
 # Directories
 SERVER_DIR = server
@@ -14,12 +17,13 @@ SERVER_SRC = $(SERVER_DIR)/src/server.c
 AUTH_SRC = $(SERVER_DIR)/lib/auth/src/user.c \
            $(SERVER_DIR)/lib/auth/src/register.c \
            $(SERVER_DIR)/lib/auth/src/login.c
+GROUP_SRC = server/lib/group/src/group.c
 SESSION_SRC = $(SERVER_DIR)/lib/session/src/session.c
 PROTOCOL_SRC = $(SERVER_DIR)/lib/protocol/src/parser.c \
                $(SERVER_DIR)/lib/protocol/src/handlers.c
 
 # All server sources
-ALL_SERVER_SRC = $(SERVER_SRC) $(AUTH_SRC) $(SESSION_SRC) $(PROTOCOL_SRC)
+ALL_SERVER_SRC = $(SERVER_SRC) $(AUTH_SRC) $(SESSION_SRC) $(PROTOCOL_SRC) $(GROUP_SRC)
 
 # Client source files
 CLIENT_SRC = $(CLIENT_DIR)/src/client.c
