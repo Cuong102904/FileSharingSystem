@@ -8,7 +8,6 @@
 
 #include "../include/server.h"
 #include "../lib/auth/include/auth.h"
-#include "../lib/file_ops/include/file_transfer.h"
 #include "../lib/protocol/include/protocol.h"
 #include "../lib/session/include/session.h"
 
@@ -46,16 +45,20 @@ void *handle_client(void *arg) {
 
     switch (cmd_type) {
     case CMD_REGISTER:
-      handle_register(client_socket, cmd.arg1, cmd.arg2);
+      handle_register(client_socket, cmd.payload.auth.username,
+                      cmd.payload.auth.password);
       break;
     case CMD_LOGIN:
-      handle_login(client_socket, cmd.arg1, cmd.arg2);
+      handle_login(client_socket, cmd.payload.auth.username,
+                   cmd.payload.auth.password);
       break;
     case CMD_LOGOUT:
-      handle_logout(client_socket, cmd.arg1);
+      handle_logout(client_socket, cmd.payload.session.session_id);
       break;
     case CMD_UPLOAD:
-      handle_upload(client_socket, cmd.arg1, cmd.arg2);
+      handle_upload(client_socket, cmd.payload.upload.group,
+                    cmd.payload.upload.local_path,
+                    cmd.payload.upload.remote_path);
       break;
     default:
       send_response(client_socket, RESP_ERR_UNKNOWN_CMD);

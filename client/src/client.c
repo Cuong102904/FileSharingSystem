@@ -49,7 +49,7 @@ int main() {
   printf("1. REGISTER <username> <password>\n");
   printf("2. LOGIN <username> <password>\n");
   printf("3. LOGOUT <session_id>\n");
-  printf("4. UPLOAD <local_filepath>\n");
+  printf("4. UPLOAD <group_name> <local_path> <remote_path>\n");
   printf("5. QUIT (to exit)\n");
   printf("==================================\n\n");
 
@@ -69,11 +69,19 @@ int main() {
 
     // Handle File Upload command
     if (strncmp(buffer, "UPLOAD", 6) == 0) {
-      char path[256];
-      if (sscanf(buffer, "UPLOAD %s", path) == 1) {
-        file_upload(client_socket, path);
+      char group_name[256];
+      char local_path[256];
+      char remote_path[256];
+
+      // Try to parse group, local_path, and remote_path
+      int parsed = sscanf(buffer, "UPLOAD %s %s %s", group_name, local_path,
+                          remote_path);
+
+      if (parsed == 3) {
+        file_upload(client_socket, group_name, local_path, remote_path);
       } else {
-        printf("Usage: UPLOAD <path>\n");
+        printf("Usage: UPLOAD <group_name> <local_path> <remote_path>\n");
+        printf("Example: UPLOAD group1 file.txt docs/\n");
       }
       continue;
     }

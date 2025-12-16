@@ -90,3 +90,4 @@ large_test_*.bin   # Test files created with dd
 *.idb
 *.pdb
 
+storage/

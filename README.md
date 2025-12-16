@@ -76,24 +76,13 @@ make --version
 
 ### 1️⃣ Build the Project
 
-**Build Server:**
 ```bash
-cd server
 make clean && make
 ```
-Output: `server/bin/server`
 
-**Build Client:**
-```bash
-cd client
-make clean && make
-
-# Or manually (if Makefile doesn't work):
-# mkdir -p bin
-# gcc -o bin/client src/client.c lib/file_ops/src/file_upload.c \
-#     -I include -I lib/file_ops/include -Wall -Wextra -O2
-```
-Output: `client/bin/client`
+This will build both server and client:
+- Output: `bin/server`
+- Output: `bin/client`
 
 ---
 
@@ -101,8 +90,7 @@ Output: `client/bin/client`
 
 **Terminal 1: Start Server**
 ```bash
-cd server
-./bin/server
+make run-server
 ```
 
 Expected output:
@@ -112,8 +100,8 @@ Server listening on port 8080...
 ```
 
 Server will:
-- Create `database/` folder for user data
-- Create `storage/` folder for uploaded files
+- Create `server/database/` folder for user data
+- Create `server/storage/` folder for uploaded files
 - Listen on `127.0.0.1:8080`
 
 ---
@@ -122,8 +110,7 @@ Server will:
 
 **Terminal 2: Start Client**
 ```bash
-cd client
-./bin/client
+make run-client
 ```
 
 Expected output:
@@ -134,7 +121,7 @@ Available commands:
 1. REGISTER <username> <password>
 2. LOGIN <username> <password>
 3. LOGOUT <session_id>
-4. UPLOAD <local_filepath>
+4. UPLOAD <local_filepath> [server_path]
 5. QUIT (to exit)
 ==================================
 
@@ -161,13 +148,12 @@ Session ID saved: a3f2b4c5...
 
 **Prepare test file:**
 ```bash
-# In another terminal
 echo "Hello from FileSharingSystem!" > test.txt
 ```
 
-**Upload via client:**
+**Upload to default storage/:**
 ```bash
-Enter command: UPLOAD test.txt
+Enter command: UPLOAD test.txt storage/
 Uploading 30 bytes...
 Upload complete: 30 bytes sent
 Server response: OK UPLOAD_COMPLETE
@@ -175,20 +161,36 @@ Server response: OK UPLOAD_COMPLETE
 
 **Verify on server side:**
 ```bash
-# In server directory
-ls -lh storage/
-cat storage/test.txt
+ls -lh server/storage/
+cat server/storage/test.txt
 # Output: Hello from FileSharingSystem!
 ```
 
-### Example 3: Upload Large File
+### Example 3: Upload to Subdirectory
+
+**Upload to organized folders:**
+```bash
+Enter command: UPLOAD document.pdf storage/group1/
+Uploading 52428 bytes...
+Upload complete: 52428 bytes sent
+Server response: OK UPLOAD_COMPLETE
+```
+
+Server automatically creates `server/storage/group1/` directory!
+
+**Verify:**
+```bash
+ls -lh server/storage/group1/document.pdf
+```
+
+### Example 4: Upload Large File
 
 ```bash
 # Create 100MB test file
 dd if=/dev/zero of=large.bin bs=1M count=100
 
 # Upload (will stream in 4KB chunks)
-Enter command: UPLOAD large.bin
+Enter command: UPLOAD large.bin storage/
 Uploading 104857600 bytes...
 Upload complete: 104857600 bytes sent
 Server response: OK UPLOAD_COMPLETE
