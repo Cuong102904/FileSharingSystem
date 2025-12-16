@@ -8,7 +8,7 @@
 #define BUFFER_SIZE 1024
 #define CHUNK_SIZE 4096
 
-int file_upload(int client_socket, const char *filepath,
+int file_upload(int client_socket, const char *group_name, const char *filepath,
                 const char *server_path) {
   // Open file for reading
   FILE *file = fopen(filepath, "rb");
@@ -22,10 +22,10 @@ int file_upload(int client_socket, const char *filepath,
   long filesize = ftell(file);
   fseek(file, 0, SEEK_SET);
 
-  // Send UPLOAD command with client path, server path, and size
+  // Send UPLOAD command with group, client path, and server path (no size)
   char command[BUFFER_SIZE];
-  snprintf(command, sizeof(command), "UPLOAD %s %s %ld", filepath, server_path,
-           filesize);
+  snprintf(command, sizeof(command), "UPLOAD %s %s %s", group_name, filepath,
+           server_path);
   if (send(client_socket, command, strlen(command), 0) < 0) {
     printf("Error: Failed to send UPLOAD command\n");
     fclose(file);
@@ -45,6 +45,13 @@ int file_upload(int client_socket, const char *filepath,
   // Check if server is ready
   if (strncmp(buffer, "OK UPLOAD_READY", 15) != 0) {
     printf("Server rejected upload: %s\n", buffer);
+    fclose(file);
+    return -1;
+  }
+
+  // Send file size as binary long
+  if (send(client_socket, &filesize, sizeof(filesize), 0) < 0) {
+    printf("Error: Failed to send file size\n");
     fclose(file);
     return -1;
   }

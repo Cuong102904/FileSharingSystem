@@ -9,16 +9,29 @@ typedef enum {
   CMD_LOGIN,
   CMD_LOGOUT,
   CMD_UPLOAD,
-  CMD_DOWNLOAD,
   CMD_UNKNOWN
 } CommandType;
 
 // Parsed command structure
 typedef struct {
   CommandType type;
-  char arg1[256]; // username, session_id, or client file path
-  char arg2[256]; // password, server path, or filesize
-  char arg3[50];  // filesize for UPLOAD command
+  union {
+    struct {
+      char username[256];
+      char password[256];
+    } auth; // REGISTER, LOGIN
+    struct {
+      char session_id[256];
+    } session; // LOGOUT
+    struct {
+      char group[256];
+      char local_path[256];
+      char remote_path[256];
+    } upload; // UPLOAD
+    struct {
+      char path[256];
+    } download; // DOWNLOAD
+  } payload;
 } ParsedCommand;
 
 // Response codes
@@ -46,8 +59,8 @@ void handle_register(int client_socket, const char *username,
 void handle_login(int client_socket, const char *username,
                   const char *password);
 void handle_logout(int client_socket, const char *session_id);
-void handle_upload(int client_socket, const char *client_path,
-                   const char *server_path, const char *filesize_str);
+void handle_upload(int client_socket, const char *group_name,
+                   const char *client_path, const char *server_path);
 
 // Send response to client
 void send_response(int client_socket, const char *response);

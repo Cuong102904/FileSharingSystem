@@ -122,3 +122,26 @@ help:
 	@echo "  make                    # Build everything"
 	@echo "  make server && make run-server"
 	@echo "  make client && make run-client"
+
+# --- TEST CONFIGURATION ---
+TEST_DIR = $(SERVER_DIR)/test
+TEST_INCLUDES = $(SERVER_INCLUDES) -I $(SERVER_DIR)/lib/utils
+
+# Protocol parser test
+PROTOCOL_TEST_SRCS = $(SERVER_DIR)/lib/protocol/test/protocol_parser_test.c \
+                     $(SERVER_DIR)/lib/protocol/src/parser.c
+
+PROTOCOL_TEST_TARGET = $(BIN_DIR)/test_protocol_parser
+
+# --- TEST TARGETS ---
+
+.PHONY: test
+
+# Build and run protocol parser tests
+test: directories $(PROTOCOL_TEST_TARGET)
+	@echo "Running protocol parser tests..."
+	@./$(PROTOCOL_TEST_TARGET)
+
+$(PROTOCOL_TEST_TARGET): $(PROTOCOL_TEST_SRCS)
+	@echo "Building protocol parser tests..."
+	$(CC) $(CFLAGS) $(TEST_INCLUDES) $(PROTOCOL_TEST_SRCS) -o $@

@@ -79,15 +79,14 @@ void handle_logout(int client_socket, const char *session_id) {
   send_response(client_socket, response);
 }
 
-void handle_upload(int client_socket, const char *client_path,
-                   const char *server_path, const char *filesize_str) {
-  long filesize = atol(filesize_str);
+void handle_upload(int client_socket, const char *group_name,
+                   const char *client_path, const char *server_path) {
   char full_path[512];
   char dir_path[512];
 
   // Security check: prevent directory traversal
-  if (strstr(server_path, "..")) {
-    send_response(client_socket, "ERROR Invalid server path");
+  if (strstr(server_path, "..") || strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path or group name");
     return;
   }
 
@@ -103,9 +102,10 @@ void handle_upload(int client_socket, const char *client_path,
     filename = client_path_copy;
   }
 
-  // Construct full save path: server_path + filename
-  // e.g., "storage/group1/" + "README.md" = "storage/group1/README.md"
-  snprintf(full_path, sizeof(full_path), "%s%s", server_path, filename);
+  // Construct full save path: storage/<group_name>/<server_path>/<filename>
+  // e.g., "storage/group1/docs/README.md"
+  snprintf(full_path, sizeof(full_path), "storage/%s/%s/%s", group_name,
+           server_path, filename);
 
   // Create directory structure if needed
   strncpy(dir_path, full_path, sizeof(dir_path) - 1);
@@ -137,6 +137,15 @@ void handle_upload(int client_socket, const char *client_path,
 
   // Send ready signal
   send_response(client_socket, RESP_OK_UPLOAD_READY);
+
+  // Receive file size
+  long filesize = 0;
+  int n = recv(client_socket, &filesize, sizeof(filesize), 0);
+  if (n <= 0) {
+    printf("Error receiving file size\n");
+    return;
+  }
+  printf("Expecting file size: %ld\n", filesize);
 
   // Delegate file I/O to file_ops module
   long bytes_received = receive_file(client_socket, full_path, filesize);
