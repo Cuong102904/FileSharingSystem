@@ -14,7 +14,9 @@ SERVER_INCLUDES = -I $(SERVER_DIR)/include \
                   -I $(SERVER_DIR)/lib/auth/include \
                   -I $(SERVER_DIR)/lib/session/include \
                   -I $(SERVER_DIR)/lib/protocol/include \
-                  -I $(SERVER_DIR)/lib/file_ops/include
+                  -I $(SERVER_DIR)/lib/protocol/include \
+                  -I $(SERVER_DIR)/lib/file_ops/include \
+                  -I $(SERVER_DIR)/lib/group_management/include
 
 SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/auth/src/user.c \
@@ -23,7 +25,9 @@ SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/session/src/session.c \
               $(SERVER_DIR)/lib/protocol/src/parser.c \
               $(SERVER_DIR)/lib/protocol/src/handlers.c \
-              $(SERVER_DIR)/lib/file_ops/src/file_transfer.c
+              $(SERVER_DIR)/lib/protocol/src/handlers.c \
+              $(SERVER_DIR)/lib/file_ops/src/file_transfer.c \
+              $(SERVER_DIR)/lib/group_management/src/membership.c
 
 SERVER_TARGET = $(BIN_DIR)/server
 
@@ -133,6 +137,18 @@ PROTOCOL_TEST_SRCS = $(SERVER_DIR)/lib/protocol/test/protocol_parser_test.c \
 
 PROTOCOL_TEST_TARGET = $(BIN_DIR)/test_protocol_parser
 
+# Client Context test
+CONTEXT_TEST_SRCS = $(SERVER_DIR)/test/test_client_context.c \
+                    $(SERVER_DIR)/src/client_context.c
+
+CONTEXT_TEST_TARGET = $(BIN_DIR)/test_client_context
+
+# Group Management test
+MEMBERSHIP_TEST_SRCS = $(SERVER_DIR)/lib/group_management/test/test_membership.c \
+                       $(SERVER_DIR)/lib/group_management/src/membership.c
+
+MEMBERSHIP_TEST_TARGET = $(BIN_DIR)/test_membership
+
 # --- TEST TARGETS ---
 
 .PHONY: test
@@ -145,3 +161,21 @@ test: directories $(PROTOCOL_TEST_TARGET)
 $(PROTOCOL_TEST_TARGET): $(PROTOCOL_TEST_SRCS)
 	@echo "Building protocol parser tests..."
 	$(CC) $(CFLAGS) $(TEST_INCLUDES) $(PROTOCOL_TEST_SRCS) -o $@
+
+# Build and run client context tests
+test_context: directories $(CONTEXT_TEST_TARGET)
+	@echo "Running client context tests..."
+	@./$(CONTEXT_TEST_TARGET)
+
+$(CONTEXT_TEST_TARGET): $(CONTEXT_TEST_SRCS)
+	@echo "Building client context tests..."
+	$(CC) $(CFLAGS) $(TEST_INCLUDES) $(CONTEXT_TEST_SRCS) -o $@
+
+# Build and run membership tests
+test_membership: directories $(MEMBERSHIP_TEST_TARGET)
+	@echo "Running membership tests..."
+	@./$(MEMBERSHIP_TEST_TARGET)
+
+$(MEMBERSHIP_TEST_TARGET): $(MEMBERSHIP_TEST_SRCS)
+	@echo "Building membership tests..."
+	$(CC) $(CFLAGS) $(TEST_INCLUDES) -pthread $(MEMBERSHIP_TEST_SRCS) -o $@

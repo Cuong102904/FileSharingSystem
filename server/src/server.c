@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "../include/client_context.h"
 #include "../include/server.h"
 #include "../lib/auth/include/auth.h"
 #include "../lib/protocol/include/protocol.h"
@@ -24,17 +25,20 @@ void server_cleanup(void) {
 }
 
 void *handle_client(void *arg) {
-  int client_socket = *(int *)arg;
+  int client_socket_fd = *(int *)arg;
   free(arg);
+
+  ClientContext ctx;
+  client_context_init(&ctx, client_socket_fd);
 
   char buffer[BUFFER_SIZE];
   int bytes_received;
   ParsedCommand cmd;
 
-  printf("Client connected: socket %d\n", client_socket);
+  printf("Client connected: socket %d\n", ctx.client_socket);
 
-  while ((bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0)) >
-         0) {
+  while ((bytes_received =
+              recv(ctx.client_socket, buffer, BUFFER_SIZE - 1, 0)) > 0) {
     buffer[bytes_received] = '\0';
 
     // printf("Received from client %d: %s\n", client_socket, buffer); // Debug
@@ -45,31 +49,30 @@ void *handle_client(void *arg) {
 
     switch (cmd_type) {
     case CMD_REGISTER:
-      handle_register(client_socket, cmd.payload.auth.username,
+      handle_register(ctx.client_socket, cmd.payload.auth.username,
                       cmd.payload.auth.password);
       break;
     case CMD_LOGIN:
-      handle_login(client_socket, cmd.payload.auth.username,
-                   cmd.payload.auth.password);
+      handle_login(&ctx, cmd.payload.auth.username, cmd.payload.auth.password);
       break;
     case CMD_LOGOUT:
-      handle_logout(client_socket, cmd.payload.session.session_id);
+      handle_logout(&ctx, cmd.payload.session.session_id);
       break;
     case CMD_UPLOAD:
-      handle_upload(client_socket, cmd.payload.upload.group,
+      handle_upload(&ctx, cmd.payload.upload.group,
                     cmd.payload.upload.local_path,
                     cmd.payload.upload.remote_path);
       break;
     default:
-      send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
+      send_response(ctx.client_socket, RESP_ERR_UNKNOWN_CMD);
       break;
     }
 
     memset(buffer, 0, BUFFER_SIZE);
   }
 
-  printf("Client disconnected: socket %d\n", client_socket);
-  close(client_socket);
+  printf("Client disconnected: socket %d\n", ctx.client_socket);
+  close(ctx.client_socket);
 
   return NULL;
 }

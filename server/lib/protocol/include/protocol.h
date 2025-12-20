@@ -54,12 +54,15 @@ typedef struct {
 CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd);
 
 // Handler functions
+#include "../../../include/client_context.h"
+
+// Handler functions
 void handle_register(int client_socket, const char *username,
                      const char *password);
-void handle_login(int client_socket, const char *username,
+void handle_login(ClientContext *ctx, const char *username,
                   const char *password);
-void handle_logout(int client_socket, const char *session_id);
-void handle_upload(int client_socket, const char *group_name,
+void handle_logout(ClientContext *ctx, const char *session_id);
+void handle_upload(ClientContext *ctx, const char *group_name,
                    const char *client_path, const char *server_path);
 
 // Send response to client
