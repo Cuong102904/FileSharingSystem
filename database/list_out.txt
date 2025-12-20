@@ -1,3 +1,0 @@
-Group ID: 101, Admin ID: 1001, Name: alpha
-Group ID: 102, Admin ID: 1002, Name: beta
-Group ID: 103, Admin ID: 1003, Name: gamma
