@@ -16,7 +16,7 @@ typedef struct {
     char username[MAX_USERNAME_LEN];
     char password[MAX_PASSWORD_LEN];
     int is_active;
-} UserDetails;
+} User;
 
 // Auth result codes
 typedef enum {
@@ -41,7 +41,7 @@ int check_user_exists(const char *username);
 int authenticate_user(const char *username, const char *password);
 
 // User management functions
-UserDetails* get_user_by_username(const char *username);
-void free_user(UserDetails *userDetails);
+User* get_user_by_username(const char *username);
+void free_user(User *user);
 
 #endif // AUTH_H

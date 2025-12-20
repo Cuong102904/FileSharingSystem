@@ -4,83 +4,48 @@
 #include <stdlib.h>
 #include <string.h>
 
-int group_find_by_id(const int group_id) {
-    printf("Finding group by ID ...\n");
-    pthread_mutex_lock(&group_db_mutex);
-    // Critical section: perform database read operations here
-    FILE *fp = fopen(GROUP_DB, "r");
-    if (fp != NULL) {
-        char line[512];
-        while (fgets(line, sizeof(line), fp)) {
-            int id, admin_id;
-            char name[256];
-            if (sscanf(line, "%d,%d,%255[^\n]", &id, &admin_id, name) == 3) {
-                if (id == group_id) {
-                    fclose(fp);
-                    pthread_mutex_unlock(&group_db_mutex);
-                    printf("Group found: ID=%d, AdminID=%d, Name=%s\n", id, admin_id, name);
-                    return 1; // Group found
-                }
-            }
-        }
-        fclose(fp);
-    } else {
-        printf("Error opening group database file for reading.\n");
+int find_group_by_name(const char *group_name){
+    FILE* file = fopen(GROUP_DB, "r");
+    if(file == NULL){
+        perror("Cannot open groups.txt");
+        return -1;
     }
-    pthread_mutex_unlock(&group_db_mutex);
-    printf("Group with ID %d not found.\n", group_id);
-    return 0; // Group not found
+
+    char line[512];
+    char stored_group_name[256];
+
+    while(fgets(line, sizeof(line), file)){
+        sscanf(line, "%s", stored_group_name);
+        if(strcmp(stored_group_name, group_name) == 0){
+            fclose(file);
+            return 1; // found
+        }
+    }
+
+    fclose(file);
+    return 0; // not found
 }
 
-int group_find_by_name(const char* group_name) {
-    printf("Finding group by Name ...\n");
+int group_list_all_by_user(const char* user_name){
     pthread_mutex_lock(&group_db_mutex);
-    // Critical section: perform database read operations here
-    FILE *fp = fopen(GROUP_DB, "r");
-    if (fp != NULL) {
-        char line[512];
-        while (fgets(line, sizeof(line), fp)) {
-            int id, admin_id;
-            char name[256];
-            if (sscanf(line, "%d,%d,%255[^\n]", &id, &admin_id, name) == 3) {
-                if (strcmp(name, group_name) == 0) {
-                    fclose(fp);
-                    pthread_mutex_unlock(&group_db_mutex);
-                    printf("Group found: ID=%d, AdminID=%d, Name=%s\n", id, admin_id, name);
-                    return 1; // Group found
-                }
-            }
-        }
-        fclose(fp);
-    } else {
-        printf("Error opening group database file for reading.\n");
+    FILE* file = fopen(GROUP_DB, "r");
+    if(file == NULL){
+        perror("Cannot open groups.txt");
+        pthread_mutex_unlock(&group_db_mutex);
+        return -1; // exit the function if the file cannot be opened
     }
-    pthread_mutex_unlock(&group_db_mutex);
-    printf("Group with Name %s not found.\n", group_name);
-    return 0; // Group not found
-}
 
-void group_list_all() {
-    printf("Listing all groups ...\n");
-    pthread_mutex_lock(&group_db_mutex);
-    // Critical section: perform database read operations here
-    FILE *fp = fopen(GROUP_DB, "r");
-    if (fp != NULL) {
-        char line[512];
-        printf("Group List:\n");
-        printf("ID\tAdminID\tName\n");
-        printf("-------------------------\n");
-        while (fgets(line, sizeof(line), fp)) {
-            int id, admin_id;
-            char name[256];
-            if (sscanf(line, "%d,%d,%255[^\n]", &id, &admin_id, name) == 3) {
-                printf("%d\t%d\t%s\n", id, admin_id, name);
-            }
-        }
-        fclose(fp);
-    } else {
-        printf("Error opening group database file for reading.\n");
+    char line[512];
+    char user_name_in_file[256];
+    char stored_group_name[256];
+
+    while(fgets(line, sizeof(line), file)){
+        sscanf(line, "%s %s", stored_group_name, user_name_in_file);
+        if(strcmp(user_name_in_file, user_name) == 0) // read both group name and user name
+            printf("%s\n", stored_group_name); // print each group name
     }
+
+    fclose(file);
     pthread_mutex_unlock(&group_db_mutex);
-    return;
+    return GROUP_REPO_OK;
 }

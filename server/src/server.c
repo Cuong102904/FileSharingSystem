@@ -60,6 +60,10 @@ void *handle_client(void *arg) {
                     cmd.payload.upload.local_path,
                     cmd.payload.upload.remote_path);
       break;
+    case CMD_CREATE_GROUP:
+      handle_create_group(client_socket, cmd.payload.group.group_name, 
+                    cmd.payload.auth.username);
+      break;
     default:
       send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
       break;

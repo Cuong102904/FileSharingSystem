@@ -1,3 +1,0 @@
-1,100,Alpha
-3,300,Gamma
-4,400,Delta

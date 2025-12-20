@@ -1,5 +1,4 @@
 #include "../include/auth.h"
-#include "../include/user.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,7 +54,7 @@ User* get_user_by_username(const char *username) {
     char stored_password[MAX_PASSWORD_LEN];
 
     while (fgets(line, sizeof(line), file)) {
-        sscanf(line, "%d %s %s", &stored_user_id, stored_username, stored_password);
+        sscanf(line, "%s %s", stored_username, stored_password);
         if (strcmp(stored_username, username) == 0) {
             fclose(file);
             pthread_mutex_unlock(&user_db_mutex);
@@ -63,11 +62,9 @@ User* get_user_by_username(const char *username) {
             User *user = malloc(sizeof(User));
             if (user == NULL) return NULL;
 
-
-            user->user_id = stored_user_id;
-            strcpy(user->user_details.username, stored_username);
-            strcpy(user->user_details.password, stored_password);
-            user->user_details.is_active = 1;
+            strcpy(user->username, stored_username);
+            strcpy(user->password, stored_password);
+            user->is_active = 1;
             return user;
         }
     }
@@ -77,8 +74,8 @@ User* get_user_by_username(const char *username) {
     return NULL;
 }
 
-void free_user(UserDetails *userDetails) {
-    if (userDetails != NULL) {
-        free(userDetails);
+void free_user(User *user) {
+    if (user != NULL) {
+        free(user);
     }
 }
