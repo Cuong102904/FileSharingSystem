@@ -16,8 +16,6 @@
 #ifndef GROUP_H
 #define GROUP_H
 
-#include <pthread.h>
-
 /*
  * Struct: Group
  * ----------------
@@ -31,23 +29,9 @@ typedef struct {
     int group_id;
     int admin_id;
     char name[256];
-    int group_member[20]; // Array to hold user IDs of group members
 } Group;
 
-// Shared mutex for group database operations
-extern pthread_mutex_t group_db_mutex;
-
-/*
- * Function: new_group
- * ----------------------
- * Creates and initializes a new Group instance.
- *
- * group_id : unique identifier for the group
- * admin_id : user ID of the group administrator
- * name     : name of the group
- *
- * returns  : a Group structure with the provided information
- */
+// Constructor
 Group new_group(int group_id, int admin_id, const char* name);
 
 #endif

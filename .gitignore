@@ -12,6 +12,7 @@ server/bin/
 client/bin/
 server/server
 client/client
+bin/
 
 # Executables in root (misplaced builds)
 client_bin

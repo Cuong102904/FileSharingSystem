@@ -14,7 +14,8 @@ SERVER_INCLUDES = -I $(SERVER_DIR)/include \
                   -I $(SERVER_DIR)/lib/auth/include \
                   -I $(SERVER_DIR)/lib/session/include \
                   -I $(SERVER_DIR)/lib/protocol/include \
-                  -I $(SERVER_DIR)/lib/file_ops/include
+                  -I $(SERVER_DIR)/lib/file_ops/include \
+				  -I $(SERVER_DIR)/lib/group/include
 
 SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/auth/src/user.c \
@@ -23,7 +24,10 @@ SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/session/src/session.c \
               $(SERVER_DIR)/lib/protocol/src/parser.c \
               $(SERVER_DIR)/lib/protocol/src/handlers.c \
-              $(SERVER_DIR)/lib/file_ops/src/file_transfer.c
+              $(SERVER_DIR)/lib/file_ops/src/file_transfer.c \
+			  $(SERVER_DIR)/lib/group/src/group_read.c \
+			  $(SERVER_DIR)/lib/group/src/group_write.c \
+			  $(SERVER_DIR)/lib/group/src/group.c \
 
 SERVER_TARGET = $(BIN_DIR)/server
 
@@ -52,7 +56,7 @@ server: directories $(SERVER_TARGET)
 
 $(SERVER_TARGET): $(SERVER_SRCS)
 	@echo "Building server..."
-	$(CC) $(CFLAGS) $(SERVER_INCLUDES) -pthread $(SERVER_SRCS) -o $@
+	$(CC) $(CFLAGS) $(SERVER_INCLUDES) -pthread $(SERVER_SRCS) $(GROUP_TEST) -o $@
 	@echo "✓ Server built: $@"
 
 # Build client
