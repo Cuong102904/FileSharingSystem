@@ -5,10 +5,14 @@
 
 #define MAX_USERNAME_LEN 50
 #define MAX_PASSWORD_LEN 50
-#define DB_FILE "database/users.txt"
+#define DB_FILE_RELATIVE "database/users.txt"
+#define MAX_PATH_LEN 512
 
 // Shared mutex for database operations
 extern pthread_mutex_t db_mutex;
+
+// Global database path (absolute)
+extern char db_path[MAX_PATH_LEN];
 
 // User structure
 typedef struct {

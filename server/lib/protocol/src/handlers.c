@@ -36,7 +36,16 @@ void handle_register(int client_socket, const char *username,
 
 void handle_login(int client_socket, const char *username,
                   const char *password) {
+  char *session_id = handle_login_with_session(client_socket, username, password);
+  if (session_id != NULL) {
+    free(session_id);
+  }
+}
+
+char *handle_login_with_session(int client_socket, const char *username,
+                                const char *password) {
   char response[BUFFER_SIZE];
+  char *session_id_to_return = NULL;
 
   int result = authenticate_user(username, password);
 
@@ -45,7 +54,7 @@ void handle_login(int client_socket, const char *username,
     char *session_id = session_create(username);
     if (session_id != NULL) {
       snprintf(response, BUFFER_SIZE, "%s %s", RESP_OK_LOGIN, session_id);
-      free(session_id);
+      session_id_to_return = session_id; // Return session_id (caller must free)
     } else {
       strcpy(response, RESP_ERR_SERVER_FULL);
     }
@@ -63,6 +72,7 @@ void handle_login(int client_socket, const char *username,
   }
 
   send_response(client_socket, response);
+  return session_id_to_return;
 }
 
 void handle_logout(int client_socket, const char *session_id) {

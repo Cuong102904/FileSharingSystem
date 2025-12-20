@@ -49,6 +49,8 @@ typedef struct {
 #define RESP_ERR_UNKNOWN_CMD "ERROR Unknown command"
 #define RESP_ERR_FILE_NOT_FOUND "ERROR File not found"
 #define RESP_ERR_ACCESS_DENIED "ERROR Access denied"
+#define RESP_ERR_ALREADY_LOGGED_IN "ERROR Already logged in"
+#define RESP_ERR_NOT_LOGGED_IN "ERROR Not logged in"
 
 // Parser functions
 CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd);
@@ -58,6 +60,8 @@ void handle_register(int client_socket, const char *username,
                      const char *password);
 void handle_login(int client_socket, const char *username,
                   const char *password);
+char *handle_login_with_session(int client_socket, const char *username,
+                                const char *password);
 void handle_logout(int client_socket, const char *session_id);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);
