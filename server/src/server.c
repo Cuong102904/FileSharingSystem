@@ -31,6 +31,9 @@ void *handle_client(void *arg) {
   int bytes_received;
   ParsedCommand cmd;
 
+  // Track current session for this client connection
+  char client_session_id[SESSION_ID_LEN + 1] = "";
+
   printf("Client connected: socket %d\n", client_socket);
 
   while ((bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0)) >
@@ -42,18 +45,39 @@ void *handle_client(void *arg) {
 
     // Parse and handle command
     CommandType cmd_type = protocol_parse_command(buffer, &cmd);
+    int is_logged_in = (client_session_id[0] != '\0');
+
+    // Commands that require NOT being logged in
+    if ((cmd_type == CMD_REGISTER || cmd_type == CMD_LOGIN) && is_logged_in) {
+      send_response(client_socket, RESP_ERR_ALREADY_LOGGED_IN);
+      continue;
+    }
+
+    // Commands that require being logged in
+    if (cmd_type != CMD_REGISTER && cmd_type != CMD_LOGIN &&
+        cmd_type != CMD_UNKNOWN && !is_logged_in) {
+      send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+      continue;
+    }
 
     switch (cmd_type) {
     case CMD_REGISTER:
       handle_register(client_socket, cmd.payload.auth.username,
                       cmd.payload.auth.password);
       break;
-    case CMD_LOGIN:
-      handle_login(client_socket, cmd.payload.auth.username,
-                   cmd.payload.auth.password);
+    case CMD_LOGIN: {
+      char *new_session_id = handle_login_with_session(
+          client_socket, cmd.payload.auth.username, cmd.payload.auth.password);
+      if (new_session_id != NULL) {
+        strncpy(client_session_id, new_session_id, SESSION_ID_LEN);
+        client_session_id[SESSION_ID_LEN] = '\0';
+        free(new_session_id);
+      }
       break;
+    }
     case CMD_LOGOUT:
-      handle_logout(client_socket, cmd.payload.session.session_id);
+      handle_logout(client_socket, client_session_id);
+      client_session_id[0] = '\0';
       break;
     case CMD_UPLOAD:
       handle_upload(client_socket, cmd.payload.upload.group,
@@ -66,6 +90,12 @@ void *handle_client(void *arg) {
     }
 
     memset(buffer, 0, BUFFER_SIZE);
+  }
+
+  // Cleanup: destroy session if client disconnects without logout
+  if (client_session_id[0] != '\0') {
+    session_destroy(client_session_id);
+    printf("Auto-logout session for disconnected client: socket %d\n", client_socket);
   }
 
   printf("Client disconnected: socket %d\n", client_socket);
