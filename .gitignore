@@ -12,6 +12,7 @@ server/bin/
 client/bin/
 server/server
 client/client
+bin/
 
 # Executables in root (misplaced builds)
 client_bin
@@ -27,6 +28,9 @@ client/downloads/        # Downloaded files (future)
 *.sqlite
 *.sqlite3
 # database/*.txt          # User/session flat files
+groups.txt
+users.txt
+files.txt
 
 # Log files
 *.log

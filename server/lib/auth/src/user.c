@@ -3,22 +3,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-pthread_mutex_t db_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t user_db_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void auth_init(void) {
-    pthread_mutex_init(&db_mutex, NULL);
+    pthread_mutex_init(&user_db_mutex, NULL);
 }
 
 void auth_cleanup(void) {
-    pthread_mutex_destroy(&db_mutex);
+    pthread_mutex_destroy(&user_db_mutex);
 }
 
 int check_user_exists(const char *username) {
-    pthread_mutex_lock(&db_mutex);
+    pthread_mutex_lock(&user_db_mutex);
 
     FILE *file = fopen(DB_FILE, "r");
     if (file == NULL) {
-        pthread_mutex_unlock(&db_mutex);
+        pthread_mutex_unlock(&user_db_mutex);
         return 0;
     }
 
@@ -29,22 +29,22 @@ int check_user_exists(const char *username) {
         sscanf(line, "%s", stored_username);
         if (strcmp(stored_username, username) == 0) {
             fclose(file);
-            pthread_mutex_unlock(&db_mutex);
+            pthread_mutex_unlock(&user_db_mutex);
             return 1;
         }
     }
 
     fclose(file);
-    pthread_mutex_unlock(&db_mutex);
+    pthread_mutex_unlock(&user_db_mutex);
     return 0;
 }
 
 User* get_user_by_username(const char *username) {
-    pthread_mutex_lock(&db_mutex);
+    pthread_mutex_lock(&user_db_mutex);
 
     FILE *file = fopen(DB_FILE, "r");
     if (file == NULL) {
-        pthread_mutex_unlock(&db_mutex);
+        pthread_mutex_unlock(&user_db_mutex);
         return NULL;
     }
 
@@ -56,7 +56,7 @@ User* get_user_by_username(const char *username) {
         sscanf(line, "%s %s", stored_username, stored_password);
         if (strcmp(stored_username, username) == 0) {
             fclose(file);
-            pthread_mutex_unlock(&db_mutex);
+            pthread_mutex_unlock(&user_db_mutex);
 
             User *user = malloc(sizeof(User));
             if (user == NULL) return NULL;
@@ -69,7 +69,7 @@ User* get_user_by_username(const char *username) {
     }
 
     fclose(file);
-    pthread_mutex_unlock(&db_mutex);
+    pthread_mutex_unlock(&user_db_mutex);
     return NULL;
 }
 

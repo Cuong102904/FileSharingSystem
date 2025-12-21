@@ -2,6 +2,7 @@
 #include "../../file_ops/include/file_transfer.h"
 #include "../../session/include/session.h"
 #include "../include/protocol.h"
+#include "../../group/include/group_repo.h"
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,6 +78,34 @@ void handle_logout(int client_socket, const char *session_id) {
   }
 
   send_response(client_socket, response);
+}
+
+void handle_create_group(int client_socket, const char* group_name, const char* user_name){
+  char response[BUFFER_SIZE];
+
+  int result = group_create(group_name, user_name); // create_group function to be implemented;
+
+  if(result == GROUP_REPO_OK){
+    strcpy(response, RESP_OK_CREATE_GROUP);
+  }
+  else{
+    strcpy(response, RESP_ERR_GROUPNAME_EXISTS);
+  }
+
+  send_response(client_socket, response);
+}
+
+void handle_list_groups_by_user(int client_socket, const char* username){
+    char response[BUFFER_SIZE];
+
+    int result = group_list_all_by_user(username);
+    if(result == GROUP_REPO_OK){
+        strcpy(response, RESP_OK_LIST_GROUP);
+    }
+    else{
+        strcpy(response, RESP_ERR_DB_ERROR);
+    }
+    send_response(client_socket, response);
 }
 
 void handle_upload(int client_socket, const char *group_name,
@@ -161,3 +190,4 @@ void handle_upload(int client_socket, const char *group_name,
     send_response(client_socket, "ERROR Cannot create file");
   }
 }
+

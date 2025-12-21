@@ -2,13 +2,14 @@
 #define AUTH_H
 
 #include <pthread.h>
+#include "group.h"
 
 #define MAX_USERNAME_LEN 50
 #define MAX_PASSWORD_LEN 50
 #define DB_FILE "database/users.txt"
 
 // Shared mutex for database operations
-extern pthread_mutex_t db_mutex;
+extern pthread_mutex_t user_db_mutex;
 
 // User structure
 typedef struct {

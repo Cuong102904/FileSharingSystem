@@ -8,6 +8,8 @@ typedef enum {
   CMD_REGISTER,
   CMD_LOGIN,
   CMD_LOGOUT,
+  CMD_CREATE_GROUP,
+  CMD_LIST_GROUPS,
   CMD_UPLOAD,
   CMD_UNKNOWN
 } CommandType;
@@ -31,6 +33,10 @@ typedef struct {
     struct {
       char path[256];
     } download; // DOWNLOAD
+    struct {
+      char group_name[256];
+      char username[256];
+    } group; // CREATE_GROUP
   } payload;
 } ParsedCommand;
 
@@ -40,6 +46,9 @@ typedef struct {
 #define RESP_OK_LOGOUT "OK LOGOUT"
 #define RESP_OK_UPLOAD_READY "OK UPLOAD_READY"
 #define RESP_OK_UPLOAD_COMPLETE "OK UPLOAD_COMPLETE"
+#define RESP_OK_CREATE_GROUP "OK CREATE_GROUP"
+#define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
+#define RESP_OK_LIST_GROUP "OK LIST_GROUP"
 #define RESP_ERR_ACCOUNT_EXISTS "ERROR Account already exists"
 #define RESP_ERR_WRONG_PASSWORD "ERROR Wrong password"
 #define RESP_ERR_USER_NOT_FOUND "ERROR User not found"
@@ -58,6 +67,8 @@ void handle_register(int client_socket, const char *username,
                      const char *password);
 void handle_login(int client_socket, const char *username,
                   const char *password);
+void handle_create_group(int client_socket, const char *group_name, const char* username);
+void handle_list_groups_by_user(int client_socket, const char* username);
 void handle_logout(int client_socket, const char *session_id);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);
