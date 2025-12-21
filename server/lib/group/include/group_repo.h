@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "group.h"
 
-#define GROUP_DB "../../../../database/groups.txt"
+#define GROUP_DB "database/groups.txt"
 
 typedef enum {
     GROUP_REPO_OK = 0,          // operation successful
