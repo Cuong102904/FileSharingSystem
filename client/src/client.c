@@ -67,6 +67,17 @@ int main() {
       break;
     }
 
+    // Auto-append session_id for LOGOUT if user typed just "LOGOUT"
+    if (strcmp(buffer, "LOGOUT") == 0) {
+      if (strlen(session_id) > 0) {
+        snprintf(buffer, BUFFER_SIZE, "LOGOUT %s", session_id);
+        printf(" Sending: %s\n", buffer);
+      } else {
+        printf("Warning: Not logged in. Usage: LOGOUT <session_id> or login "
+               "first.\n");
+      }
+    }
+
     // Handle File Upload command
     if (strncmp(buffer, "UPLOAD", 6) == 0) {
       char group_name[256];
@@ -78,7 +89,12 @@ int main() {
                           remote_path);
 
       if (parsed == 3) {
-        file_upload(client_socket, group_name, local_path, remote_path);
+        if (strlen(session_id) == 0) {
+          printf("Error: You must LOGIN first to upload files.\n");
+        } else {
+          file_upload(client_socket, session_id, group_name, local_path,
+                      remote_path);
+        }
       } else {
         printf("Usage: UPLOAD <group_name> <local_path> <remote_path>\n");
         printf("Example: UPLOAD group1 file.txt docs/\n");

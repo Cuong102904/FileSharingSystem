@@ -28,9 +28,12 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     return CMD_LOGOUT;
   } else if (strcmp(command, "UPLOAD") == 0) {
     cmd->type = CMD_UPLOAD;
-    sscanf(buffer, "%*s %s %s %s", cmd->payload.upload.group,
-           cmd->payload.upload.local_path, cmd->payload.upload.remote_path);
-    return CMD_UPLOAD;
+    // Format: UPLOAD <session_id> <group> <client_path> <server_path>
+    if (sscanf(buffer, "UPLOAD %64s %255s %255s %255s", cmd->session_id,
+               cmd->payload.upload.group, cmd->payload.upload.client_path,
+               cmd->payload.upload.server_path) == 4) {
+      return CMD_UPLOAD;
+    }
   }
 
   cmd->type = CMD_UNKNOWN;

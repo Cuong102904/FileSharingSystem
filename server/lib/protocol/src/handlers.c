@@ -1,7 +1,7 @@
 #include "../../auth/include/auth.h"
 #include "../../file_ops/include/file_transfer.h"
-#include "../../group_management/include/membership.h"
 #include "../../session/include/session.h"
+#include "../../utils/include/membership.h"
 #include "../include/protocol.h"
 #include <libgen.h>
 #include <stdio.h>
@@ -35,7 +35,7 @@ void handle_register(int client_socket, const char *username,
   send_response(client_socket, response);
 }
 
-void handle_login(ClientContext *ctx, const char *username,
+void handle_login(int client_socket, const char *username,
                   const char *password) {
   char response[BUFFER_SIZE];
 
@@ -46,15 +46,11 @@ void handle_login(ClientContext *ctx, const char *username,
 
   switch (result) {
   case AUTH_SUCCESS: {
-    char *session_id = session_create(username);
-    if (session_id != NULL) {
-      // Update Context
-      strncpy(ctx->username, username, sizeof(ctx->username) - 1);
-      strncpy(ctx->session_id, session_id, sizeof(ctx->session_id) - 1);
-      ctx->is_authenticated = true;
-
-      snprintf(response, BUFFER_SIZE, "%s %s", RESP_OK_LOGIN, session_id);
-      free(session_id);
+    // UPDATED: Use new Session API
+    Session *s = session_find_by_socket(client_socket);
+    if (s) {
+      session_login(s, username);
+      snprintf(response, BUFFER_SIZE, "%s %s", RESP_OK_LOGIN, s->session_id);
     } else {
       strcpy(response, RESP_ERR_SERVER_FULL);
     }
@@ -71,48 +67,46 @@ void handle_login(ClientContext *ctx, const char *username,
     break;
   }
 
-  send_response(ctx->client_socket, response);
+  send_response(client_socket, response);
 }
 
-void handle_logout(ClientContext *ctx, const char *session_id) {
+void handle_logout(int client_socket, const char *session_id) {
   char response[BUFFER_SIZE];
 
-  int result = session_destroy(session_id);
+  // In new architecture, logout simply destroys the session
+  Session *s = session_find_by_id(session_id);
 
-  if (result == SESSION_SUCCESS) {
-    // Clear Context
-    memset(ctx->username, 0, sizeof(ctx->username));
-    memset(ctx->session_id, 0, sizeof(ctx->session_id));
-    ctx->is_authenticated = false;
-
+  if (s) {
+    session_destroy(s);
     strcpy(response, RESP_OK_LOGOUT);
   } else {
     strcpy(response, RESP_ERR_INVALID_SESSION);
   }
 
-  send_response(ctx->client_socket, response);
+  send_response(client_socket, response);
 }
 
-void handle_upload(ClientContext *ctx, const char *group_name,
-                   const char *client_path, const char *server_path) {
+void handle_upload(void *arg, const char *group_name, const char *client_path,
+                   const char *server_path) {
+  Session *s = (Session *)arg;
   char full_path[512];
   char dir_path[512];
 
   // Check authentication
-  if (!ctx->is_authenticated) {
-    send_response(ctx->client_socket, "ERROR Not authenticated");
+  if (!s || !s->is_logged_in) {
+    send_response(s->socket_fd, "ERROR Not authenticated");
     return;
   }
 
   // Check membership
-  if (!membership_check(group_name, ctx->username)) {
-    send_response(ctx->client_socket, "ERROR Not a member of this group");
+  if (!membership_check(group_name, s->username)) {
+    send_response(s->socket_fd, "ERROR Not a member of this group");
     return;
   }
 
   // Security check: prevent directory traversal
   if (strstr(server_path, "..") || strstr(group_name, "..")) {
-    send_response(ctx->client_socket, "ERROR Invalid path or group name");
+    send_response(s->socket_fd, "ERROR Invalid path or group name");
     return;
   }
 
@@ -153,7 +147,7 @@ void handle_upload(ClientContext *ctx, const char *group_name,
       if (stat(temp_path, &st) == -1) {
         if (mkdir(temp_path, 0755) != 0) {
           perror("Directory creation error");
-          send_response(ctx->client_socket, "ERROR Cannot create directory");
+          send_response(s->socket_fd, "ERROR Cannot create directory");
           return;
         }
       }
@@ -162,11 +156,11 @@ void handle_upload(ClientContext *ctx, const char *group_name,
   }
 
   // Send ready signal
-  send_response(ctx->client_socket, RESP_OK_UPLOAD_READY);
+  send_response(s->socket_fd, RESP_OK_UPLOAD_READY);
 
   // Receive file size
   long filesize = 0;
-  int n = recv(ctx->client_socket, &filesize, sizeof(filesize), 0);
+  int n = recv(s->socket_fd, &filesize, sizeof(filesize), 0);
   if (n <= 0) {
     printf("Error receiving file size\n");
     return;
@@ -174,16 +168,17 @@ void handle_upload(ClientContext *ctx, const char *group_name,
   printf("Expecting file size: %ld\n", filesize);
 
   // Delegate file I/O to file_ops module
-  long bytes_received = receive_file(ctx->client_socket, full_path, filesize);
+  // IMPORTANT: In future steps, this will be handled by Thread Pool
+  long bytes_received = receive_file(s->socket_fd, full_path, filesize);
 
   // Send completion status
   if (bytes_received == filesize) {
-    send_response(ctx->client_socket, RESP_OK_UPLOAD_COMPLETE);
+    send_response(s->socket_fd, RESP_OK_UPLOAD_COMPLETE);
   } else if (bytes_received >= 0) {
     printf("Upload incomplete. Expected %ld, got %ld\n", filesize,
            bytes_received);
-    send_response(ctx->client_socket, "ERROR Upload incomplete");
+    send_response(s->socket_fd, "ERROR Upload incomplete");
   } else {
-    send_response(ctx->client_socket, "ERROR Cannot create file");
+    send_response(s->socket_fd, "ERROR Cannot create file");
   }
 }

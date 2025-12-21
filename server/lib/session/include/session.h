@@ -1,46 +1,47 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include <netinet/in.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <time.h>
 
-#define MAX_SESSIONS 100
 #define SESSION_ID_LEN 64
+#define USERNAME_LEN 256
 
-// Session structure
 typedef struct {
-    char username[50];
-    char session_id[SESSION_ID_LEN + 1];
-    int active;
-    long created_at;
+  char session_id[SESSION_ID_LEN];
+  char username[USERNAME_LEN];
+  int socket_fd;
+  struct sockaddr_in client_addr;
+  time_t created_at;
+  time_t last_active;
+  pthread_rwlock_t lock; // Protect individual session data
+  bool is_logged_in;
 } Session;
 
-// Session result codes
-typedef enum {
-    SESSION_SUCCESS = 1,
-    SESSION_NOT_FOUND = 0,
-    SESSION_FULL = -1,
-    SESSION_ERROR = -2
-} SessionResult;
+// Initialize session system
+void session_system_init(void);
 
-// Initialize session module
-void session_init(void);
+// Create a new session for a socket
+Session *session_create(int socket_fd, struct sockaddr_in *addr);
 
-// Cleanup session module
-void session_cleanup(void);
+// Find session by socket (O(1) lookup map or simple array scan for now)
+Session *session_find_by_socket(int socket_fd);
 
-// Create a new session for user
-char* session_create(const char *username);
+// Find session by ID
+Session *session_find_by_id(const char *session_id);
 
-// Destroy session by session_id
-int session_destroy(const char *session_id);
+// Associate username with session (Login)
+void session_login(Session *s, const char *username);
 
-// Validate session
-int session_validate(const char *session_id);
+// Destroy session
+void session_destroy(Session *s);
 
-// Get username from session_id
-char* session_get_username(const char *session_id);
+// Remove session by socket
+void session_remove_by_socket(int socket_fd);
 
-// Generate random session ID
-void session_generate_id(char *session_id);
+// Cleanup idle sessions
+void session_cleanup_idle(int timeout_seconds);
 
 #endif // SESSION_H

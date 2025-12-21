@@ -12,6 +12,7 @@
  * 5. Waits for server's UPLOAD_COMPLETE confirmation
  *
  * @param client_socket Socket connected to server
+ * @param session_id The session ID for authentication/authorization.
  * @param group_name Name of the group to which the file belongs (e.g.,
  * "group1", "public")
  * @param filepath Path to the local file to upload
@@ -19,7 +20,8 @@
  * "storage/", "storage/group1/")
  * @return 0 on success, -1 on error
  */
-int file_upload(int client_socket, const char *group_name, const char *filepath,
+int file_upload(int client_socket, const char *session_id,
+                const char *group_name, const char *filepath,
                 const char *server_path);
 
 #endif // FILE_UPLOAD_H

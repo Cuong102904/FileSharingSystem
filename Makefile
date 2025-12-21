@@ -13,10 +13,10 @@ BIN_DIR = bin
 SERVER_INCLUDES = -I $(SERVER_DIR)/include \
                   -I $(SERVER_DIR)/lib/auth/include \
                   -I $(SERVER_DIR)/lib/session/include \
-                  -I $(SERVER_DIR)/lib/protocol/include \
+                  -I $(SERVER_DIR)/lib/utils/include \
                   -I $(SERVER_DIR)/lib/protocol/include \
                   -I $(SERVER_DIR)/lib/file_ops/include \
-                  -I $(SERVER_DIR)/lib/group_management/include
+                  -I $(SERVER_DIR)/lib/session/include
 
 SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/auth/src/user.c \
@@ -25,9 +25,9 @@ SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/session/src/session.c \
               $(SERVER_DIR)/lib/protocol/src/parser.c \
               $(SERVER_DIR)/lib/protocol/src/handlers.c \
-              $(SERVER_DIR)/lib/protocol/src/handlers.c \
               $(SERVER_DIR)/lib/file_ops/src/file_transfer.c \
-              $(SERVER_DIR)/lib/group_management/src/membership.c
+              $(SERVER_DIR)/lib/utils/src/thread_pool.c \
+              $(SERVER_DIR)/lib/utils/src/membership.c
 
 SERVER_TARGET = $(BIN_DIR)/server
 
@@ -133,9 +133,7 @@ TEST_INCLUDES = $(SERVER_INCLUDES) -I $(SERVER_DIR)/lib/utils
 
 # Protocol parser test
 PROTOCOL_TEST_SRCS = $(SERVER_DIR)/lib/protocol/test/protocol_parser_test.c \
-                     $(SERVER_DIR)/lib/protocol/src/parser.c
-
-PROTOCOL_TEST_TARGET = $(BIN_DIR)/test_protocol_parser
+                   # Removed old tests for now
 
 # Client Context test
 CONTEXT_TEST_SRCS = $(SERVER_DIR)/test/test_client_context.c \

@@ -15,6 +15,7 @@ typedef enum {
 // Parsed command structure
 typedef struct {
   CommandType type;
+  char session_id[65]; // New field for session-based auth
   union {
     struct {
       char username[256];
@@ -25,8 +26,8 @@ typedef struct {
     } session; // LOGOUT
     struct {
       char group[256];
-      char local_path[256];
-      char remote_path[256];
+      char client_path[256];
+      char server_path[256];
     } upload; // UPLOAD
     struct {
       char path[256];
@@ -54,15 +55,15 @@ typedef struct {
 CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd);
 
 // Handler functions
-#include "../../../include/client_context.h"
+// Handler functions
 
 // Handler functions
 void handle_register(int client_socket, const char *username,
                      const char *password);
-void handle_login(ClientContext *ctx, const char *username,
+void handle_login(int client_socket, const char *username,
                   const char *password);
-void handle_logout(ClientContext *ctx, const char *session_id);
-void handle_upload(ClientContext *ctx, const char *group_name,
+void handle_logout(int client_socket, const char *session_id);
+void handle_upload(void *session, const char *group_name,
                    const char *client_path, const char *server_path);
 
 // Send response to client

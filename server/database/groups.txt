@@ -1,0 +1,4 @@
+Group1 1 duongtt member
+Group1 0 alice member
+Group2 1 duongtt member
+Group2 0 bob member
