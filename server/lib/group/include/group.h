@@ -13,7 +13,7 @@ typedef struct {
     MemberStatus status;
 } Group;
 
-const char* status_to_string(MemberStatus);
+const char* status_to_string(MemberStatus status);
 Group create_group(const char* group_name, const char* member_name, int isAdmin, MemberStatus status);
 
 #endif

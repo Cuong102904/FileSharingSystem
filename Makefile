@@ -27,6 +27,7 @@ SERVER_SRCS = $(SERVER_DIR)/src/server.c \
               $(SERVER_DIR)/lib/file_ops/src/file_transfer.c \
 			  $(SERVER_DIR)/lib/group/src/group_read.c \
 			  $(SERVER_DIR)/lib/group/src/group_write.c \
+			  $(SERVER_DIR)/lib/group/src/group_repo.c \
 			  $(SERVER_DIR)/lib/group/src/group.c \
 
 SERVER_TARGET = $(BIN_DIR)/server

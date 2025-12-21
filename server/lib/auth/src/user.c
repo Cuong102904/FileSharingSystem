@@ -49,7 +49,6 @@ User* get_user_by_username(const char *username) {
     }
 
     char line[256];
-    int stored_user_id;
     char stored_username[MAX_USERNAME_LEN];
     char stored_password[MAX_PASSWORD_LEN];
 

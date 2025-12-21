@@ -105,6 +105,7 @@ void handle_list_groups_by_user(int client_socket, const char* username){
     else{
         strcpy(response, RESP_ERR_DB_ERROR);
     }
+    send_response(client_socket, response);
 }
 
 void handle_upload(int client_socket, const char *group_name,

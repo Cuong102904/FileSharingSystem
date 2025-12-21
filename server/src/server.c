@@ -9,6 +9,8 @@
 #include "../include/server.h"
 #include "../lib/auth/include/auth.h"
 #include "../lib/protocol/include/protocol.h"
+#include "../lib/group/include/group_repo.h"
+#include "../lib/group/include/group.h"
 #include "../lib/session/include/session.h"
 
 void server_init(void) {
@@ -61,8 +63,13 @@ void *handle_client(void *arg) {
                     cmd.payload.upload.remote_path);
       break;
     case CMD_CREATE_GROUP:
-      handle_create_group(client_socket, cmd.payload.group.group_name, 
-                    cmd.payload.auth.username);
+      handle_create_group(client_socket, 
+                          cmd.payload.group.group_name, 
+                          cmd.payload.auth.username);
+      break;
+    case CMD_LIST_GROUPS:
+      handle_list_groups_by_user(client_socket, 
+                                cmd.payload.auth.username);
       break;
     default:
       send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
