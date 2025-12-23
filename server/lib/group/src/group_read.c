@@ -26,26 +26,39 @@ int find_group_by_name(const char *group_name){
     return 0; // not found
 }
 
-int group_list_all_by_user(const char* user_name){
+char* group_list_all_by_user(const char* member_name){
+    char *res = (char*)malloc(1024 * sizeof(char));
+    res[0] = '\0'; // Initialize as empty string
+
     pthread_mutex_lock(&group_db_mutex);
     FILE* file = fopen(GROUP_DB, "r");
     if(file == NULL){
         perror("Cannot open groups.txt");
         pthread_mutex_unlock(&group_db_mutex);
-        return -1; // exit the function if the file cannot be opened
+        return res; // exit the function if the file cannot be opened
     }
 
+    strcat(res, member_name);
+    strcat(res, "'s groups:\n");
     char line[512];
-    char user_name_in_file[256];
-    char stored_group_name[256];
 
     while(fgets(line, sizeof(line), file)){
-        sscanf(line, "%s %s", stored_group_name, user_name_in_file);
-        if(strcmp(user_name_in_file, user_name) == 0) // read both group name and user name
-            printf("%s\n", stored_group_name); // print each group name
+        Group group;
+        char status_str[20];
+        sscanf(line, "%s %s %d %s", group.group_name, group.member_name, &group.isAdmin, status_str);
+        if(strcmp(group.member_name, member_name) == 0 && strcmp(status_str, "member") == 0){
+            char group_info[512];
+            sprintf(group_info, "Group: %s\n", group.group_name);
+            strcat(res, group_info);
+        }
+    }
+    
+
+    if (strcmp(res, member_name) == 0) {
+        strcat(res, "No groups found for this user.\n");
     }
 
     fclose(file);
     pthread_mutex_unlock(&group_db_mutex);
-    return GROUP_REPO_OK;
+    return res;
 }

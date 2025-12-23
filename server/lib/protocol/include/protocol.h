@@ -35,8 +35,8 @@ typedef struct {
     } download; // DOWNLOAD
     struct {
       char group_name[256];
-      char username[256];
-    } group; // CREATE_GROUP
+      char user_name[256];
+    } group; // CREATE_GROUP, LIST_GROUPS
   } payload;
 } ParsedCommand;
 
