@@ -19,6 +19,7 @@ SERVER_INCLUDES = \
 	-I $(SERVER_DIR)/lib/file_ops/include \
 	-I $(SERVER_DIR)/lib/group/include \
 	-I $(SERVER_DIR)/lib/thread_pool/include \
+	-I $(SERVER_DIR)/lib/client_session/include \
 	-I $(SERVER_DIR)/lib/utils
 
 CLIENT_INCLUDES = \
@@ -29,6 +30,7 @@ CLIENT_INCLUDES = \
 SERVER_SRCS = \
 	$(SERVER_DIR)/src/server.c \
 	$(SERVER_DIR)/lib/thread_pool/src/thread_pool.c \
+	$(SERVER_DIR)/lib/client_session/src/client_session.c \
 	$(SERVER_DIR)/lib/auth/src/user.c \
 	$(SERVER_DIR)/lib/auth/src/register.c \
 	$(SERVER_DIR)/lib/auth/src/login.c \
