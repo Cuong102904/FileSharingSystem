@@ -19,7 +19,7 @@ typedef enum {
 extern pthread_mutex_t group_db_mutex;
 
 int group_create(const char *group_name, const char *user_name);
+char* group_list_all_by_user(const char* member_name);
 int find_group_by_name(const char *group_name);
-int group_list_all_by_user(const char* user_name);
 
 #endif

@@ -65,11 +65,12 @@ void *handle_client(void *arg) {
     case CMD_CREATE_GROUP:
       handle_create_group(client_socket, 
                           cmd.payload.group.group_name, 
-                          cmd.payload.auth.username);
+                          cmd.payload.group.user_name);
       break;
+    // Waiting for client_socket -> user_name mapping implementation
     case CMD_LIST_GROUPS:
       handle_list_groups_by_user(client_socket, 
-                                cmd.payload.auth.username);
+                                cmd.payload.group.user_name);
       break;
     default:
       send_response(client_socket, RESP_ERR_UNKNOWN_CMD);

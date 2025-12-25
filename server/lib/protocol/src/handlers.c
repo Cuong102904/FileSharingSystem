@@ -45,7 +45,7 @@ void handle_login(int client_socket, const char *username,
   case AUTH_SUCCESS: {
     char *session_id = session_create(username);
     if (session_id != NULL) {
-      snprintf(response, BUFFER_SIZE, "%s %s", RESP_OK_LOGIN, session_id);
+      snprintf(response, BUFFER_SIZE, "%s %s %s", RESP_OK_LOGIN,username, session_id);
       free(session_id);
     } else {
       strcpy(response, RESP_ERR_SERVER_FULL);
@@ -98,8 +98,11 @@ void handle_create_group(int client_socket, const char* group_name, const char* 
 void handle_list_groups_by_user(int client_socket, const char* username){
     char response[BUFFER_SIZE];
 
-    int result = group_list_all_by_user(username);
-    if(result == GROUP_REPO_OK){
+    char* result = group_list_all_by_user(username);
+    if(result != NULL){
+        // Send the list first (if any), then status line
+        send(client_socket, result, strlen(result), 0);
+        free(result);
         strcpy(response, RESP_OK_LIST_GROUP);
     }
     else{
