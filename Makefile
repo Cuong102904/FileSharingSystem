@@ -18,15 +18,17 @@ SERVER_INCLUDES = \
 	-I $(SERVER_DIR)/lib/protocol/include \
 	-I $(SERVER_DIR)/lib/file_ops/include \
 	-I $(SERVER_DIR)/lib/group/include \
+	-I $(SERVER_DIR)/lib/thread_pool/include \
 	-I $(SERVER_DIR)/lib/utils
 
 CLIENT_INCLUDES = \
 	-I $(CLIENT_DIR)/include \
 	-I $(CLIENT_DIR)/lib/file_ops/include
 
-# --- SERVER SOURCES ---
+# --- SERVER SOURCES (IO multiplexing + thread pool) ---
 SERVER_SRCS = \
 	$(SERVER_DIR)/src/server.c \
+	$(SERVER_DIR)/lib/thread_pool/src/thread_pool.c \
 	$(SERVER_DIR)/lib/auth/src/user.c \
 	$(SERVER_DIR)/lib/auth/src/register.c \
 	$(SERVER_DIR)/lib/auth/src/login.c \
@@ -70,7 +72,7 @@ directories:
 	@mkdir -p $(BIN_DIR)
 
 # Build server
-server: $(SERVER_TARGET)
+server: directories $(SERVER_TARGET)
 
 $(SERVER_TARGET): $(SERVER_SRCS)
 	@echo "Building server..."
@@ -78,7 +80,7 @@ $(SERVER_TARGET): $(SERVER_SRCS)
 	@echo "✓ Server built: $@"
 
 # Build client
-client: $(CLIENT_TARGET)
+client: directories $(CLIENT_TARGET)
 
 $(CLIENT_TARGET): $(CLIENT_SRCS)
 	@echo "Building client..."
