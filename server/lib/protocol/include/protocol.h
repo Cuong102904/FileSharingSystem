@@ -67,8 +67,8 @@ void handle_register(int client_socket, const char *username,
                      const char *password);
 void handle_login(int client_socket, const char *username,
                   const char *password);
-void handle_create_group(int client_socket, const char *group_name, const char* username);
-void handle_list_groups_by_user(int client_socket, const char* username);
+void handle_create_group(int client_socket, const char *group_name);
+void handle_list_groups_by_user(int client_socket);
 void handle_logout(int client_socket, const char *session_id);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);

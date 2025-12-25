@@ -1,4 +1,5 @@
 #include "../../auth/include/auth.h"
+#include "../../client_session/include/client_session.h"
 #include "../../file_ops/include/file_transfer.h"
 #include "../../session/include/session.h"
 #include "../include/protocol.h"
@@ -45,7 +46,9 @@ void handle_login(int client_socket, const char *username,
   case AUTH_SUCCESS: {
     char *session_id = session_create(username);
     if (session_id != NULL) {
-      snprintf(response, BUFFER_SIZE, "%s %s %s", RESP_OK_LOGIN,username, session_id);
+      // Register client socket -> username mapping
+      client_session_login(client_socket, username);
+      snprintf(response, BUFFER_SIZE, "%s %s %s", RESP_OK_LOGIN, username, session_id);
       free(session_id);
     } else {
       strcpy(response, RESP_ERR_SERVER_FULL);
@@ -72,6 +75,8 @@ void handle_logout(int client_socket, const char *session_id) {
   int result = session_destroy(session_id);
 
   if (result == SESSION_SUCCESS) {
+    // Remove client socket -> username mapping
+    client_session_logout(client_socket);
     strcpy(response, RESP_OK_LOGOUT);
   } else {
     strcpy(response, RESP_ERR_INVALID_SESSION);
@@ -80,35 +85,47 @@ void handle_logout(int client_socket, const char *session_id) {
   send_response(client_socket, response);
 }
 
-void handle_create_group(int client_socket, const char* group_name, const char* user_name){
+void handle_create_group(int client_socket, const char *group_name) {
   char response[BUFFER_SIZE];
 
-  int result = group_create(group_name, user_name); // create_group function to be implemented;
-
-  if(result == GROUP_REPO_OK){
-    strcpy(response, RESP_OK_CREATE_GROUP);
+  // Get username from client session
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
   }
-  else{
+
+  int result = group_create(group_name, username);
+
+  if (result == GROUP_REPO_OK) {
+    strcpy(response, RESP_OK_CREATE_GROUP);
+  } else {
     strcpy(response, RESP_ERR_GROUPNAME_EXISTS);
   }
 
   send_response(client_socket, response);
 }
 
-void handle_list_groups_by_user(int client_socket, const char* username){
-    char response[BUFFER_SIZE];
+void handle_list_groups_by_user(int client_socket) {
+  char response[BUFFER_SIZE];
 
-    char* result = group_list_all_by_user(username);
-    if(result != NULL){
-        // Send the list first (if any), then status line
-        send(client_socket, result, strlen(result), 0);
-        free(result);
-        strcpy(response, RESP_OK_LIST_GROUP);
-    }
-    else{
-        strcpy(response, RESP_ERR_DB_ERROR);
-    }
-    send_response(client_socket, response);
+  // Get username from client session
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  char *result = group_list_all_by_user(username);
+  if (result != NULL) {
+    // Send the list first (if any), then status line
+    send(client_socket, result, strlen(result), 0);
+    free(result);
+    strcpy(response, RESP_OK_LIST_GROUP);
+  } else {
+    strcpy(response, RESP_ERR_DB_ERROR);
+  }
+  send_response(client_socket, response);
 }
 
 void handle_upload(int client_socket, const char *group_name,
