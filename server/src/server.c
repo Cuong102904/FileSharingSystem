@@ -15,6 +15,7 @@
 #endif
 
 #include "../lib/auth/include/auth.h"
+#include "../lib/client_session/include/client_session.h"
 #include "../lib/group/include/group.h"
 #include "../lib/group/include/group_repo.h"
 #include "../lib/protocol/include/protocol.h"
@@ -32,10 +33,12 @@ static ThreadPool *g_thread_pool = NULL;
 static void server_init(void) {
     auth_init();
     session_init();
+    client_session_init();
     printf("Server modules initialized.\n");
 }
 
 static void server_cleanup(void) {
+    client_session_cleanup();
     auth_cleanup();
     session_cleanup();
     printf("Server modules cleaned up.\n");
@@ -85,11 +88,10 @@ static void process_request(void *arg) {
                       cmd.payload.upload.remote_path);
         break;
     case CMD_CREATE_GROUP:
-        handle_create_group(client_socket, cmd.payload.group.group_name,
-                            cmd.payload.group.user_name);
+        handle_create_group(client_socket, cmd.payload.group.group_name);
         break;
     case CMD_LIST_GROUPS:
-        handle_list_groups_by_user(client_socket, cmd.payload.group.user_name);
+        handle_list_groups_by_user(client_socket);
         break;
     default:
         send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
@@ -134,7 +136,8 @@ static int run_event_loop(int server_socket) {
             int fd = (int)events[i].ident;
 
             if (events[i].flags & EV_EOF) {
-                // Client disconnected
+                // Client disconnected - cleanup session
+                client_session_logout(fd);
                 printf("Client disconnected: socket %d\n", fd);
                 close(fd);
                 continue;
@@ -172,6 +175,7 @@ static int run_event_loop(int server_socket) {
 
                 if (bytes_read <= 0) {
                     if (bytes_read == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
+                        client_session_logout(fd);
                         printf("Client disconnected: socket %d\n", fd);
                         close(fd);
                     }
@@ -238,6 +242,7 @@ static int run_event_loop(int server_socket) {
             int fd = events[i].data.fd;
 
             if (events[i].events & (EPOLLHUP | EPOLLERR)) {
+                client_session_logout(fd);
                 printf("Client disconnected: socket %d\n", fd);
                 close(fd);
                 continue;
@@ -275,6 +280,7 @@ static int run_event_loop(int server_socket) {
 
                 if (bytes_read <= 0) {
                     if (bytes_read == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
+                        client_session_logout(fd);
                         printf("Client disconnected: socket %d\n", fd);
                         epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
                         close(fd);
