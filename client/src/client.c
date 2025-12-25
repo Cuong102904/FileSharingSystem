@@ -16,7 +16,6 @@ int main() {
   struct sockaddr_in server_addr;
   char buffer[BUFFER_SIZE];
   char session_id[65] = "";
-  char user_name[256] = ""; // For Testing only
 
   // Init socket
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -66,31 +65,10 @@ int main() {
 
     // Check QUIT command
     if (strcmp(buffer, "QUIT") == 0 || strcmp(buffer, "quit") == 0) {
-      user_name[0] = '\0';
       printf("Exiting...\n");
       break;
     }
 
-    // Handle Group Create command
-    if(strncmp(buffer, "CREATE_GROUP", 12) == 0){
-      char admin_name[256];
-      strcpy(admin_name, user_name);
-      admin_name[strlen(user_name)] = '\0';
-      strcat(buffer, " ");
-      strcat(buffer, admin_name);
-      printf("%s\n", buffer);
-    }
-
-    // Handle List Groups command
-    if(strncmp(buffer, "LIST_GROUPS", 11) == 0){
-      char username[256];
-      strcpy(username, user_name);
-      username[strlen(user_name)] = '\0';
-      strcat(buffer, " ");
-      strcat(buffer, username);
-      printf("%s\n", buffer); // For testing only
-    }
-    
     // Handle File Upload command
     if (strncmp(buffer, "UPLOAD", 6) == 0) {
       char group_name[256];
@@ -127,14 +105,14 @@ int main() {
 
     // Check session id login successfully or not
     if (strncmp(buffer, "OK LOGIN", 8) == 0) {
-      sscanf(buffer, "OK LOGIN %s %s",user_name, session_id);
-      printf("Current user: %s\n", user_name); // FOR TESTING ONLY
+      char username[256];
+      sscanf(buffer, "OK LOGIN %s %s", username, session_id);
+      printf("Logged in as: %s\n", username);
       printf("Session ID saved: %s\n", session_id);
       printf("Use this for LOGOUT: LOGOUT %s\n\n", session_id);
     }
 
-    if(strncmp(buffer, "OK LOGOUT", 9) == 0){
-      user_name[0] = '\0';
+    if (strncmp(buffer, "OK LOGOUT", 9) == 0) {
       session_id[0] = '\0';
       printf("Logged out successfully. Session cleared.\n\n");
     }
