@@ -15,7 +15,6 @@ int main() {
   int client_socket;
   struct sockaddr_in server_addr;
   char buffer[BUFFER_SIZE];
-  char session_id[65] = "";
 
   // Init socket
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -48,7 +47,7 @@ int main() {
   printf("Available commands:\n");
   printf("1. REGISTER <username> <password>\n");
   printf("2. LOGIN <username> <password>\n");
-  printf("3. LOGOUT <session_id>\n");
+  printf("3. LOGOUT\n");
   printf("4. CREATE_GROUP <group_name>\n");
   printf("5. LIST_GROUPS\n");
   printf("6. UPLOAD <group_name> <local_path> <remote_path>\n");
@@ -103,18 +102,15 @@ int main() {
     buffer[bytes_received] = '\0';
     printf("Server response: %s\n\n", buffer);
 
-    // Check session id login successfully or not
+    // Check login response
     if (strncmp(buffer, "OK LOGIN", 8) == 0) {
       char username[256];
-      sscanf(buffer, "OK LOGIN %s %s", username, session_id);
-      printf("Logged in as: %s\n", username);
-      printf("Session ID saved: %s\n", session_id);
-      printf("Use this for LOGOUT: LOGOUT %s\n\n", session_id);
+      sscanf(buffer, "OK LOGIN %s", username);
+      printf("Logged in as: %s\n\n", username);
     }
 
     if (strncmp(buffer, "OK LOGOUT", 9) == 0) {
-      session_id[0] = '\0';
-      printf("Logged out successfully. Session cleared.\n\n");
+      printf("Logged out successfully.\n\n");
     }
   }
 
