@@ -43,18 +43,14 @@ void handle_login(int client_socket, const char *username,
   int result = authenticate_user(username, password);
 
   switch (result) {
-  case AUTH_SUCCESS: {
-    char *session_id = session_create(username);
-    if (session_id != NULL) {
-      // Register client socket -> username mapping
-      client_session_login(client_socket, username);
-      snprintf(response, BUFFER_SIZE, "%s %s %s", RESP_OK_LOGIN, username, session_id);
-      free(session_id);
+  case AUTH_SUCCESS:
+    // Register client socket -> username mapping
+    if (client_session_login(client_socket, username) == 0) {
+      snprintf(response, BUFFER_SIZE, "%s %s", RESP_OK_LOGIN, username);
     } else {
       strcpy(response, RESP_ERR_SERVER_FULL);
     }
     break;
-  }
   case AUTH_WRONG_PASSWORD:
     strcpy(response, RESP_ERR_WRONG_PASSWORD);
     break;
@@ -69,17 +65,16 @@ void handle_login(int client_socket, const char *username,
   send_response(client_socket, response);
 }
 
-void handle_logout(int client_socket, const char *session_id) {
+void handle_logout(int client_socket) {
   char response[BUFFER_SIZE];
 
-  int result = session_destroy(session_id);
-
-  if (result == SESSION_SUCCESS) {
-    // Remove client socket -> username mapping
+  // Get username from socket and logout
+  const char *username = client_session_get_username(client_socket);
+  if (username != NULL) {
     client_session_logout(client_socket);
     strcpy(response, RESP_OK_LOGOUT);
   } else {
-    strcpy(response, RESP_ERR_INVALID_SESSION);
+    strcpy(response, RESP_ERR_NOT_LOGGED_IN);
   }
 
   send_response(client_socket, response);
