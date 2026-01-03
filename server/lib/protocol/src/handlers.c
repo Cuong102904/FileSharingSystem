@@ -102,8 +102,6 @@ void handle_create_group(int client_socket, const char *group_name) {
 }
 
 void handle_list_groups_by_user(int client_socket) {
-  char response[BUFFER_SIZE];
-
   // Get username from client session
   const char *username = client_session_get_username(client_socket);
   if (username == NULL) {
@@ -113,14 +111,24 @@ void handle_list_groups_by_user(int client_socket) {
 
   char *result = group_list_all_by_user(username);
   if (result != NULL) {
-    // Send the list first (if any), then status line
-    send(client_socket, result, strlen(result), 0);
+    // Combine list and status into single response
+    size_t result_len = strlen(result);
+    size_t status_len = strlen(RESP_OK_LIST_GROUP);
+    char *combined = malloc(result_len + status_len + 1);
+    if (combined != NULL) {
+      memcpy(combined, result, result_len);
+      memcpy(combined + result_len, RESP_OK_LIST_GROUP, status_len + 1);
+      send(client_socket, combined, result_len + status_len, 0);
+      free(combined);
+    } else {
+      // Fallback: send separately if malloc fails
+      send(client_socket, result, result_len, 0);
+      send_response(client_socket, RESP_OK_LIST_GROUP);
+    }
     free(result);
-    strcpy(response, RESP_OK_LIST_GROUP);
   } else {
-    strcpy(response, RESP_ERR_DB_ERROR);
+    send_response(client_socket, RESP_ERR_DB_ERROR);
   }
-  send_response(client_socket, response);
 }
 
 void handle_upload(int client_socket, const char *group_name,
