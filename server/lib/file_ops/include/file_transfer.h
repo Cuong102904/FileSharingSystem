@@ -14,5 +14,6 @@
  * @return Total bytes received on success, -1 on error
  */
 long receive_file(int client_socket, const char *save_path, long filesize);
+long send_file(int client_socket, const char *file_path);
 
-#endif
+#endif // FILE_TRANSFER_H

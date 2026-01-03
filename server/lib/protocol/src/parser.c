@@ -31,14 +31,20 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     sscanf(buffer, "%*s %s %s %s", cmd->payload.upload.group,
            cmd->payload.upload.local_path, cmd->payload.upload.remote_path);
     return CMD_UPLOAD;
-  } else if(strcmp(command, "CREATE_GROUP") == 0) {
+  } else if (strcmp(command, "DOWNLOAD") == 0) {
+    cmd->type = CMD_DOWNLOAD;
+    sscanf(buffer, "%*s %s %s", cmd->payload.download.group,
+           cmd->payload.download.path);
+    return CMD_DOWNLOAD;
+  } else if (strcmp(command, "CREATE_GROUP") == 0) {
     cmd->type = CMD_CREATE_GROUP;
-    sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.user_name);
+    sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name,
+           cmd->payload.group.user_name);
     return CMD_CREATE_GROUP;
-  } else if(strcmp(command, "LIST_GROUPS") == 0) {
+  } else if (strcmp(command, "LIST_GROUPS") == 0) {
     cmd->type = CMD_LIST_GROUPS;
     sscanf(buffer, "%*s %s", cmd->payload.group.user_name);
-    return CMD_LIST_GROUPS; 
+    return CMD_LIST_GROUPS;
   }
   cmd->type = CMD_UNKNOWN;
   return CMD_UNKNOWN;

@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 // Import file upload library
+#include "../lib/file_ops/include/file_download.h"
 #include "../lib/file_ops/include/file_upload.h"
 
 #define PORT 8080
@@ -52,7 +53,8 @@ int main() {
   printf("4. CREATE_GROUP <group_name>\n");
   printf("5. LIST_GROUPS\n");
   printf("6. UPLOAD <group_name> <local_path> <remote_path>\n");
-  printf("7. QUIT (to exit)\n");
+  printf("7. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
+  printf("8. QUIT (to exit)\n");
   printf("==================================\n\n");
 
   while (1) {
@@ -70,7 +72,7 @@ int main() {
     }
 
     // Handle File Upload command
-    if (strncmp(buffer, "UPLOAD", 6) == 0) {
+    else if (strncmp(buffer, "UPLOAD", 6) == 0) {
       char group_name[256];
       char local_path[256];
       char remote_path[256];
@@ -84,6 +86,23 @@ int main() {
       } else {
         printf("Usage: UPLOAD <group_name> <local_path> <remote_path>\n");
         printf("Example: UPLOAD group1 file.txt docs/\n");
+      }
+      continue;
+    } else if (strncmp(buffer, "DOWNLOAD", 8) == 0) {
+      char group_name[256];
+      char server_path[256];
+      char local_path[256];
+
+      int parsed = sscanf(buffer, "DOWNLOAD %s %s %s", group_name, server_path,
+                          local_path);
+
+      if (parsed == 3) {
+        file_download(client_socket, group_name, server_path, local_path);
+      } else {
+        printf("Usage: DOWNLOAD <group_name> <path_on_server> "
+               "<local_save_path>\n");
+        printf(
+            "Example: DOWNLOAD 123 docs/file.txt /home/user/downloaded.txt\n");
       }
       continue;
     }

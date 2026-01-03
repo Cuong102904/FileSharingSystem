@@ -1,9 +1,11 @@
 #include "../../auth/include/auth.h"
 #include "../../client_session/include/client_session.h"
 #include "../../file_ops/include/file_transfer.h"
+#include "../../group/include/group_repo.h"
 #include "../../session/include/session.h"
 #include "../include/protocol.h"
-#include "../../group/include/group_repo.h"
+#include <errno.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +50,8 @@ void handle_login(int client_socket, const char *username,
     if (session_id != NULL) {
       // Register client socket -> username mapping
       client_session_login(client_socket, username);
-      snprintf(response, BUFFER_SIZE, "%s %s %s", RESP_OK_LOGIN, username, session_id);
+      snprintf(response, BUFFER_SIZE, "%s %s %s", RESP_OK_LOGIN, username,
+               session_id);
       free(session_id);
     } else {
       strcpy(response, RESP_ERR_SERVER_FULL);
@@ -139,6 +142,18 @@ void handle_upload(int client_socket, const char *group_name,
     return;
   }
 
+  // Permission check: verify user is a member of the group
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, "ERROR You are not a member of this group");
+    return;
+  }
+
   // Extract filename (basename) from client path
   char client_path_copy[256];
   strncpy(client_path_copy, client_path, sizeof(client_path_copy) - 1);
@@ -187,27 +202,128 @@ void handle_upload(int client_socket, const char *group_name,
   // Send ready signal
   send_response(client_socket, RESP_OK_UPLOAD_READY);
 
+  // ===== FIX: Set socket to BLOCKING mode for file transfer =====
+  // Save current flags
+  int flags = fcntl(client_socket, F_GETFL, 0);
+  if (flags == -1) {
+    perror("fcntl F_GETFL failed");
+    send_response(client_socket, "ERROR Server error");
+    return;
+  }
+
+  // Set to blocking mode
+  if (fcntl(client_socket, F_SETFL, flags & ~O_NONBLOCK) == -1) {
+    perror("fcntl F_SETFL failed");
+    send_response(client_socket, "ERROR Server error");
+    return;
+  }
+  // ===== END FIX =====
+
   // Receive file size
   long filesize = 0;
   int n = recv(client_socket, &filesize, sizeof(filesize), 0);
   if (n <= 0) {
-    printf("Error receiving file size\n");
+    // Restore non-blocking mode before returning
+    fcntl(client_socket, F_SETFL, flags);
     return;
   }
-  printf("Expecting file size: %ld\n", filesize);
 
   // Delegate file I/O to file_ops module
   long bytes_received = receive_file(client_socket, full_path, filesize);
+
+  // ===== FIX: Restore socket to NON-BLOCKING mode =====
+  if (fcntl(client_socket, F_SETFL, flags) == -1) {
+    perror("fcntl restore failed");
+  }
+  // ===== END FIX =====
 
   // Send completion status
   if (bytes_received == filesize) {
     send_response(client_socket, RESP_OK_UPLOAD_COMPLETE);
   } else if (bytes_received >= 0) {
-    printf("Upload incomplete. Expected %ld, got %ld\n", filesize,
-           bytes_received);
     send_response(client_socket, "ERROR Upload incomplete");
   } else {
     send_response(client_socket, "ERROR Cannot create file");
   }
 }
 
+void handle_download(int client_socket, const char *group_name,
+                     const char *server_path) {
+  char full_path[512];
+
+  // Security check: prevent directory traversal
+  if (strstr(server_path, "..") || strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path or group name");
+    return;
+  }
+
+  // Permission check: verify user is a member of the group
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, "ERROR You are not a member of this group");
+    return;
+  }
+
+  // Construct full path: storage/<group_name>/<server_path>
+  snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name,
+           server_path);
+
+  // Check file existence
+  struct stat st;
+  if (stat(full_path, &st) == -1) {
+    send_response(client_socket, RESP_ERR_FILE_NOT_FOUND);
+    return;
+  }
+
+  // Check if it's a regular file
+  if (!S_ISREG(st.st_mode)) {
+    send_response(client_socket, "ERROR Not a file");
+    return;
+  }
+
+  long filesize = st.st_size;
+
+  // Send OK response with filesize
+  char response[256];
+  snprintf(response, sizeof(response), "%s %ld", RESP_OK_DOWNLOAD, filesize);
+  send_response(client_socket, response);
+
+  // Set socket to BLOCKING mode for handshake AND file transfer
+  int flags = fcntl(client_socket, F_GETFL, 0);
+  if (flags == -1) {
+    perror("fcntl F_GETFL failed");
+    return;
+  }
+
+  if (fcntl(client_socket, F_SETFL, flags & ~O_NONBLOCK) == -1) {
+    perror("fcntl F_SETFL failed");
+    return;
+  }
+
+  // Wait for client to be ready (prevent TCP stream coalescing)
+  // Now in blocking mode, so this will correctly wait for data
+  char ack[64];
+  int ack_len = recv(client_socket, ack, sizeof(ack), 0);
+  if (ack_len <= 0) {
+    printf("Error waiting for client ACK (recv returned %d)\n", ack_len);
+    // Restore non-blocking before returning
+    fcntl(client_socket, F_SETFL, flags);
+    return;
+  }
+
+  // Send file content
+  long bytes_sent = send_file(client_socket, full_path);
+
+  // Restore socket to NON-BLOCKING mode
+  fcntl(client_socket, F_SETFL, flags);
+
+  if (bytes_sent != filesize) {
+    printf("WARNING: Download incomplete. Sent %ld/%ld bytes\n", bytes_sent,
+           filesize);
+  }
+}

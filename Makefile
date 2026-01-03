@@ -48,7 +48,8 @@ SERVER_TARGET = $(BIN_DIR)/server
 # --- CLIENT SOURCES ---
 CLIENT_SRCS = \
 	$(CLIENT_DIR)/src/client.c \
-	$(CLIENT_DIR)/lib/file_ops/src/file_upload.c
+	$(CLIENT_DIR)/lib/file_ops/src/file_upload.c \
+	$(CLIENT_DIR)/lib/file_ops/src/file_download.c
 
 CLIENT_TARGET = $(BIN_DIR)/client
 

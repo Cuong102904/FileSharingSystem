@@ -11,6 +11,7 @@ typedef enum {
   CMD_CREATE_GROUP,
   CMD_LIST_GROUPS,
   CMD_UPLOAD,
+  CMD_DOWNLOAD, // New download command
   CMD_UNKNOWN
 } CommandType;
 
@@ -31,6 +32,7 @@ typedef struct {
       char remote_path[256];
     } upload; // UPLOAD
     struct {
+      char group[256];
       char path[256];
     } download; // DOWNLOAD
     struct {
@@ -46,6 +48,7 @@ typedef struct {
 #define RESP_OK_LOGOUT "OK LOGOUT"
 #define RESP_OK_UPLOAD_READY "OK UPLOAD_READY"
 #define RESP_OK_UPLOAD_COMPLETE "OK UPLOAD_COMPLETE"
+#define RESP_OK_DOWNLOAD "OK DOWNLOAD" // New response
 #define RESP_OK_CREATE_GROUP "OK CREATE_GROUP"
 #define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
 #define RESP_OK_LIST_GROUP "OK LIST_GROUP"
@@ -72,6 +75,8 @@ void handle_list_groups_by_user(int client_socket);
 void handle_logout(int client_socket, const char *session_id);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);
+void handle_download(int client_socket, const char *group_name,
+                     const char *server_path);
 
 // Send response to client
 void send_response(int client_socket, const char *response);
