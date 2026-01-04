@@ -36,6 +36,21 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     sscanf(buffer, "%*s %s %s", cmd->payload.download.group,
            cmd->payload.download.path);
     return CMD_DOWNLOAD;
+  } else if (strcmp(command, "MKDIR") == 0) {
+    cmd->type = CMD_MKDIR;
+    sscanf(buffer, "%*s %s %s", cmd->payload.mkdir.group,
+           cmd->payload.mkdir.path);
+    return CMD_MKDIR;
+  } else if (strcmp(command, "COPY") == 0) {
+    cmd->type = CMD_COPY;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.copy.group,
+           cmd->payload.copy.source, cmd->payload.copy.destination);
+    return CMD_COPY;
+  } else if (strcmp(command, "MOVE") == 0) {
+    cmd->type = CMD_MOVE;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.move.group,
+           cmd->payload.move.source, cmd->payload.move.destination);
+    return CMD_MOVE;
   } else if (strcmp(command, "CREATE_GROUP") == 0) {
     cmd->type = CMD_CREATE_GROUP;
     sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name,

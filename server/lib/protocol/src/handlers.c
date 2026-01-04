@@ -1,5 +1,6 @@
 #include "../../auth/include/auth.h"
 #include "../../client_session/include/client_session.h"
+#include "../../file_ops/include/directory_ops.h"
 #include "../../file_ops/include/file_transfer.h"
 #include "../../group/include/group_repo.h"
 #include "../../session/include/session.h"
@@ -328,4 +329,174 @@ void handle_download(int client_socket, const char *group_name,
     printf("WARNING: Download incomplete. Sent %ld/%ld bytes\n", bytes_sent,
            filesize);
   }
+}
+
+void handle_mkdir(int client_socket, const char *group_name, const char *path) {
+  char full_path[512];
+
+  // Security: directory traversal check
+  if (strstr(path, "..") || strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct full path
+  snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name, path);
+
+  // Check if already exists
+  struct stat st;
+  if (stat(full_path, &st) == 0) {
+    send_response(client_socket, RESP_ERR_FOLDER_EXISTS);
+    return;
+  }
+
+  // Create directory using directory_ops
+  if (create_directory_recursive(full_path) != 0) {
+    send_response(client_socket, "ERROR Cannot create directory");
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_MKDIR);
+}
+
+void handle_copy(int client_socket, const char *group_name, const char *source,
+                 const char *destination) {
+  char src_path[512], dst_path[512];
+
+  // Security checks
+  if (strstr(source, "..") || strstr(destination, "..") ||
+      strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct paths
+  snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
+  snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
+           destination);
+
+  // Check source exists
+  struct stat st;
+  if (stat(src_path, &st) != 0) {
+    char error_msg[256];
+    snprintf(error_msg, sizeof(error_msg), "ERROR Source path not found: %s",
+             source);
+    send_response(client_socket, error_msg);
+    return;
+  }
+
+  // Check if destination parent directory exists
+  if (check_parent_directory_exists(dst_path) != 0) {
+    char error_msg[512];
+    // Extract folder name from destination path
+    char dst_dir[512];
+    strncpy(dst_dir, dst_path, sizeof(dst_dir) - 1);
+    dst_dir[sizeof(dst_dir) - 1] = '\0';
+
+    char *last_slash = strrchr(dst_dir, '/');
+    if (last_slash) {
+      *last_slash = '\0';
+      const char *folder_part = strchr(dst_dir + 8, '/');
+      if (folder_part) {
+        folder_part = strchr(folder_part + 1, '/');
+        if (folder_part)
+          folder_part++;
+      }
+
+      // Truncate path if too long for error message
+      char truncated_path[256];
+      if (folder_part) {
+        strncpy(truncated_path, folder_part, sizeof(truncated_path) - 1);
+        truncated_path[sizeof(truncated_path) - 1] = '\0';
+      }
+
+      snprintf(error_msg, sizeof(error_msg),
+               "ERROR Destination folder not found: %s (use MKDIR first)",
+               folder_part ? truncated_path : "unknown");
+    } else {
+      snprintf(error_msg, sizeof(error_msg),
+               "ERROR Destination folder not found (use MKDIR first)");
+    }
+    send_response(client_socket, error_msg);
+    return;
+  }
+
+  // Copy using directory_ops
+  if (copy_path(src_path, dst_path) != 0) {
+    send_response(client_socket, "ERROR Copy operation failed");
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_COPY);
+}
+
+void handle_move(int client_socket, const char *group_name, const char *source,
+                 const char *destination) {
+  char src_path[512], dst_path[512];
+
+  // Security checks
+  if (strstr(source, "..") || strstr(destination, "..") ||
+      strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct paths
+  snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
+  snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
+           destination);
+
+  // Check source exists
+  struct stat st;
+  if (stat(src_path, &st) != 0) {
+    char error_msg[256];
+    snprintf(error_msg, sizeof(error_msg), "ERROR Source path not found: %s",
+             source);
+    send_response(client_socket, error_msg);
+    return;
+  }
+
+  // Move using directory_ops
+  if (move_path(src_path, dst_path) != 0) {
+    send_response(client_socket, "ERROR Move failed");
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_MOVE);
 }

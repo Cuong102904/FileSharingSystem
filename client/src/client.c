@@ -53,7 +53,10 @@ int main() {
   printf("5. LIST_GROUPS\n");
   printf("6. UPLOAD <group_name> <local_path> <remote_path>\n");
   printf("7. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
-  printf("8. QUIT (to exit)\n");
+  printf("8. MKDIR <group_name> <path>\n");
+  printf("9. COPY <group_name> <source_path> <destination_path>\n");
+  printf("10. MOVE <group_name> <source_path> <destination_path>\n");
+  printf("11. QUIT (to exit)\n");
   printf("==================================\n\n");
 
   while (1) {
@@ -102,6 +105,39 @@ int main() {
                "<local_save_path>\n");
         printf(
             "Example: DOWNLOAD 123 docs/file.txt /home/user/downloaded.txt\n");
+      }
+      continue;
+    }
+
+    // MKDIR command
+    if (strncmp(buffer, "MKDIR", 5) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // COPY command
+    if (strncmp(buffer, "COPY", 4) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // MOVE command
+    if (strncmp(buffer, "MOVE", 4) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
       }
       continue;
     }
