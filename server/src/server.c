@@ -70,37 +70,50 @@ static void process_request(void *arg) {
   // Parse and handle command
   CommandType cmd_type = protocol_parse_command(buffer, &cmd);
 
-  switch (cmd_type) {
-  case CMD_REGISTER:
-    handle_register(client_socket, cmd.payload.auth.username,
-                    cmd.payload.auth.password);
-    break;
-  case CMD_LOGIN:
-    handle_login(client_socket, cmd.payload.auth.username,
-                 cmd.payload.auth.password);
-    break;
-  case CMD_LOGOUT:
-    handle_logout(client_socket, cmd.payload.session.session_id);
-    break;
-  case CMD_UPLOAD:
-    handle_upload(client_socket, cmd.payload.upload.group,
-                  cmd.payload.upload.local_path,
-                  cmd.payload.upload.remote_path);
-    break;
-  case CMD_DOWNLOAD:
-    handle_download(client_socket, cmd.payload.download.group,
-                    cmd.payload.download.path);
-    break;
-  case CMD_CREATE_GROUP:
-    handle_create_group(client_socket, cmd.payload.group.group_name);
-    break;
-  case CMD_LIST_GROUPS:
-    handle_list_groups_by_user(client_socket);
-    break;
-  default:
-    // Only send error if buffer has actual content
-    if (strlen(buffer) > 0 && buffer[0] != '\n' && buffer[0] != '\r') {
-      send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
+    // Check login state
+    int is_logged_in = client_session_is_logged_in(client_socket);
+
+    // Commands that require NOT being logged in (REGISTER, LOGIN)
+    if ((cmd_type == CMD_REGISTER || cmd_type == CMD_LOGIN) && is_logged_in) {
+        send_response(client_socket, RESP_ERR_ALREADY_LOGGED_IN);
+        free(task);
+        return;
+    }
+
+    // Commands that require being logged in (all except REGISTER, LOGIN, UNKNOWN)
+    if (cmd_type != CMD_REGISTER && cmd_type != CMD_LOGIN &&
+        cmd_type != CMD_UNKNOWN && !is_logged_in) {
+        send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+        free(task);
+        return;
+    }
+
+    switch (cmd_type) {
+    case CMD_REGISTER:
+        handle_register(client_socket, cmd.payload.auth.username,
+                        cmd.payload.auth.password);
+        break;
+    case CMD_LOGIN:
+        handle_login(client_socket, cmd.payload.auth.username,
+                     cmd.payload.auth.password);
+        break;
+    case CMD_LOGOUT:
+        handle_logout(client_socket);
+        break;
+    case CMD_UPLOAD:
+        handle_upload(client_socket, cmd.payload.upload.group,
+                      cmd.payload.upload.local_path,
+                      cmd.payload.upload.remote_path);
+        break;
+    case CMD_CREATE_GROUP:
+        handle_create_group(client_socket, cmd.payload.group.group_name);
+        break;
+    case CMD_LIST_GROUPS:
+        handle_list_groups_by_user(client_socket);
+        break;
+    default:
+        send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
+        break;
     }
     break;
   }
