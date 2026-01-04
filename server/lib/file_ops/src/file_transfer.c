@@ -57,13 +57,28 @@ long send_file(int client_socket, const char *file_path) {
   size_t bytes_read;
 
   while ((bytes_read = fread(buffer, 1, CHUNK_SIZE, file)) > 0) {
-    size_t sent = send(client_socket, buffer, bytes_read, 0);
-    if (sent != bytes_read) {
-      perror("Send error");
-      fclose(file);
-      return -1;
+    // Handle partial sends with retry loop
+    size_t total_sent_this_chunk = 0;
+    while (total_sent_this_chunk < bytes_read) {
+      ssize_t sent = send(client_socket, buffer + total_sent_this_chunk,
+                          bytes_read - total_sent_this_chunk, 0);
+      if (sent < 0) {
+        if (errno == EINTR) {
+          continue; // Interrupted system call, retry
+        }
+        perror("Send error");
+        fclose(file);
+        return -1;
+      }
+      if (sent == 0) {
+        // Connection closed by peer
+        perror("Connection closed");
+        fclose(file);
+        return -1;
+      }
+      total_sent_this_chunk += (size_t)sent;
+      total_sent += (size_t)sent;
     }
-    total_sent += sent;
   }
 
   fclose(file);

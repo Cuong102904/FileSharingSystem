@@ -9,11 +9,12 @@ int create_directory_recursive(const char *full_path) {
   char temp_path[512] = "";
   char path_copy[512];
   struct stat st;
+  char *saveptr; // For thread-safe strtok_r
 
   strncpy(path_copy, full_path, sizeof(path_copy) - 1);
   path_copy[sizeof(path_copy) - 1] = '\0';
 
-  char *token = strtok(path_copy, "/");
+  char *token = strtok_r(path_copy, "/", &saveptr);
   while (token != NULL) {
     strcat(temp_path, token);
     strcat(temp_path, "/");
@@ -24,7 +25,7 @@ int create_directory_recursive(const char *full_path) {
         return -1;
       }
     }
-    token = strtok(NULL, "/");
+    token = strtok_r(NULL, "/", &saveptr);
   }
 
   return 0;

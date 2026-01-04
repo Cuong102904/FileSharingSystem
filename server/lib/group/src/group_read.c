@@ -50,7 +50,7 @@ char *group_list_all_by_user(const char *member_name) {
     if (strcmp(group.member_name, member_name) == 0 &&
         strcmp(status_str, "member") == 0) {
       char group_info[512];
-      sprintf(group_info, "Group: %s\n", group.group_name);
+      snprintf(group_info, sizeof(group_info), "Group: %s\n", group.group_name);
       strcat(res, group_info);
     }
   }
