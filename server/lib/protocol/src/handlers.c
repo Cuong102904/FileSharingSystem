@@ -309,6 +309,46 @@ void handle_invite_user(int client_socket, const char *group_name, const char *t
   }
 }
 
+void handle_accept_invite(int client_socket, const char *group_name, const char *status) {
+  // Get username from client session
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check if group exists
+  if (find_group_by_name(group_name) != 1) {
+    send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
+    return;
+  }
+
+  // Check if user has been invited
+  if (!is_user_invited(group_name, username)) {
+    send_response(client_socket, RESP_ERR_NOT_INVITED);
+    return;
+  }
+
+  // Handle accept or reject
+  if (strcmp(status, "accept") == 0) {
+    int result = group_accept_invite(group_name, username);
+    if (result == GROUP_REPO_OK) {
+      send_response(client_socket, RESP_OK_ACCEPT_INVITE);
+    } else {
+      send_response(client_socket, RESP_ERR_DB_ERROR);
+    }
+  } else if (strcmp(status, "reject") == 0) {
+    int result = group_reject_invite(group_name, username);
+    if (result == GROUP_REPO_OK) {
+      send_response(client_socket, RESP_OK_REJECT_INVITE);
+    } else {
+      send_response(client_socket, RESP_ERR_DB_ERROR);
+    }
+  } else {
+    send_response(client_socket, RESP_ERR_INVALID_STATUS);
+  }
+}
+
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path) {
   char full_path[512];

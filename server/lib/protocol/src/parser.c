@@ -55,6 +55,10 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     cmd->type = CMD_INVITE_USER;
     sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.user_name);
     return CMD_INVITE_USER;
+  } else if(strcmp(command, "ACCEPT_INVITE") == 0) {
+    cmd->type = CMD_ACCEPT_INVITE;
+    sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.status);
+    return CMD_ACCEPT_INVITE;
   }
   cmd->type = CMD_UNKNOWN;
   return CMD_UNKNOWN;

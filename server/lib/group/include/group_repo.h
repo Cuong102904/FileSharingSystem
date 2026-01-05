@@ -46,4 +46,10 @@ int is_user_invited(const char *group_name, const char *username);
 // Invite user to group (add with invited role)
 int group_invite_user(const char *group_name, const char *username);
 
+// Accept invite (change role from invited to member)
+int group_accept_invite(const char *group_name, const char *username);
+
+// Reject invite (remove invited entry)
+int group_reject_invite(const char *group_name, const char *username);
+
 #endif
