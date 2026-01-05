@@ -266,19 +266,37 @@ void handle_invite_user(int client_socket, const char *group_name, const char *t
 
   // Check if target user is already in the group
   if (is_user_in_group(group_name, target_user)) {
-    send_response(client_socket, RESP_ERR_ALREADY_IN_GROUP);
+    char error_msg[BUFFER_SIZE];
+    if (strcmp(username, target_user) == 0) {
+      snprintf(error_msg, BUFFER_SIZE, "ERROR You are already in this group");
+    } else {
+      snprintf(error_msg, BUFFER_SIZE, "ERROR %s is already in this group", target_user);
+    }
+    send_response(client_socket, error_msg);
     return;
   }
 
   // Check if target user already has pending request
   if (is_user_pending(group_name, target_user)) {
-    send_response(client_socket, RESP_ERR_ALREADY_PENDING);
+    char error_msg[BUFFER_SIZE];
+    if (strcmp(username, target_user) == 0) {
+      snprintf(error_msg, BUFFER_SIZE, "ERROR You already have a pending request");
+    } else {
+      snprintf(error_msg, BUFFER_SIZE, "ERROR %s already has a pending request", target_user);
+    }
+    send_response(client_socket, error_msg);
     return;
   }
 
   // Check if target user already has been invited
   if (is_user_invited(group_name, target_user)) {
-    send_response(client_socket, RESP_ERR_USER_ALREADY_INVITED);
+    char error_msg[BUFFER_SIZE];
+    if (strcmp(username, target_user) == 0) {
+      snprintf(error_msg, BUFFER_SIZE, "ERROR You have already been invited");
+    } else {
+      snprintf(error_msg, BUFFER_SIZE, "ERROR %s has already been invited", target_user);
+    }
+    send_response(client_socket, error_msg);
     return;
   }
 
