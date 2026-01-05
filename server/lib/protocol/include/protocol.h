@@ -13,6 +13,7 @@ typedef enum {
   CMD_LIST_MEMBERS,
   CMD_JOIN_REQ,
   CMD_APPROVE_JOIN,
+  CMD_INVITE_USER,
   CMD_UPLOAD,
   CMD_UNKNOWN
 } CommandType;
@@ -61,6 +62,8 @@ typedef struct {
 #define RESP_OK_APPROVE_JOIN "OK APPROVE_JOIN"
 #define RESP_ERR_NO_PERMISSION "ERROR No permission"
 #define RESP_ERR_NO_PENDING_REQUEST "ERROR User has no pending request"
+#define RESP_OK_INVITE_USER "OK INVITE_USER"
+#define RESP_ERR_USER_ALREADY_INVITED "ERROR User already invited"
 #define RESP_ERR_ACCOUNT_EXISTS "ERROR Account already exists"
 #define RESP_ERR_WRONG_PASSWORD "ERROR Wrong password"
 #define RESP_ERR_USER_NOT_FOUND "ERROR User not found"
@@ -86,6 +89,7 @@ void handle_list_groups_by_user(int client_socket);
 void handle_list_members(int client_socket, const char *group_name);
 void handle_join_request(int client_socket, const char *group_name);
 void handle_approve_join(int client_socket, const char *group_name, const char *target_user);
+void handle_invite_user(int client_socket, const char *group_name, const char *target_user);
 void handle_logout(int client_socket);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);

@@ -1,11 +1,12 @@
 #ifndef GROUP_H
 #define GROUP_H
 
-// Member roles: owner (người tạo group), member (thành viên), pending (chờ duyệt)
+// Member roles: owner (người tạo group), member (thành viên), pending (chờ duyệt), invited (được mời)
 typedef enum {
     ROLE_OWNER,
     ROLE_MEMBER,
-    ROLE_PENDING
+    ROLE_PENDING,
+    ROLE_INVITED
 } MemberRole;
 
 // Group membership record (1 row in database)

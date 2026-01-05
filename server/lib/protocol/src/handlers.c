@@ -244,6 +244,53 @@ void handle_approve_join(int client_socket, const char *group_name, const char *
   }
 }
 
+void handle_invite_user(int client_socket, const char *group_name, const char *target_user) {
+  // Get username from client session (the inviter)
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check if group exists
+  if (find_group_by_name(group_name) != 1) {
+    send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
+    return;
+  }
+
+  // Check if current user is owner of the group
+  if (!is_user_owner(group_name, username)) {
+    send_response(client_socket, RESP_ERR_NO_PERMISSION);
+    return;
+  }
+
+  // Check if target user is already in the group
+  if (is_user_in_group(group_name, target_user)) {
+    send_response(client_socket, RESP_ERR_ALREADY_IN_GROUP);
+    return;
+  }
+
+  // Check if target user already has pending request
+  if (is_user_pending(group_name, target_user)) {
+    send_response(client_socket, RESP_ERR_ALREADY_PENDING);
+    return;
+  }
+
+  // Check if target user already has been invited
+  if (is_user_invited(group_name, target_user)) {
+    send_response(client_socket, RESP_ERR_USER_ALREADY_INVITED);
+    return;
+  }
+
+  // Invite the user
+  int result = group_invite_user(group_name, target_user);
+  if (result == GROUP_REPO_OK) {
+    send_response(client_socket, RESP_OK_INVITE_USER);
+  } else {
+    send_response(client_socket, RESP_ERR_DB_ERROR);
+  }
+}
+
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path) {
   char full_path[512];

@@ -40,4 +40,10 @@ int is_user_owner(const char *group_name, const char *username);
 // Approve pending member (change role from pending to member)
 int group_approve_member(const char *group_name, const char *username);
 
+// Check if user has been invited (invited role)
+int is_user_invited(const char *group_name, const char *username);
+
+// Invite user to group (add with invited role)
+int group_invite_user(const char *group_name, const char *username);
+
 #endif

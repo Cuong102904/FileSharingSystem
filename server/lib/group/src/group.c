@@ -6,6 +6,7 @@ const char* role_to_string(MemberRole role) {
         case ROLE_OWNER:   return "owner";
         case ROLE_MEMBER:  return "member";
         case ROLE_PENDING: return "pending";
+        case ROLE_INVITED: return "invited";
         default:           return "unknown";
     }
 }
@@ -14,5 +15,6 @@ MemberRole string_to_role(const char* str) {
     if (strcmp(str, "owner") == 0)   return ROLE_OWNER;
     if (strcmp(str, "member") == 0)  return ROLE_MEMBER;
     if (strcmp(str, "pending") == 0) return ROLE_PENDING;
+    if (strcmp(str, "invited") == 0) return ROLE_INVITED;
     return ROLE_PENDING; // default
 }

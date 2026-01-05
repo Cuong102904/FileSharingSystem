@@ -97,3 +97,21 @@ int group_approve_member(const char *group_name, const char *username) {
     return GROUP_REPO_OK;
 }
 
+// Invite user to group (add with invited role)
+int group_invite_user(const char *group_name, const char *username) {
+    pthread_mutex_lock(&group_db_mutex);
+
+    FILE* file = fopen(GROUP_DB, "a");
+    if(file == NULL){
+        perror("Cannot open groups.txt");
+        pthread_mutex_unlock(&group_db_mutex);
+        return GROUP_REPO_ERR_IO;
+    }
+
+    // Format: group_name member_name role
+    fprintf(file, "%s %s %s\n", group_name, username, role_to_string(ROLE_INVITED));
+    fclose(file);
+    pthread_mutex_unlock(&group_db_mutex);
+    return GROUP_REPO_OK;
+}
+
