@@ -1,19 +1,25 @@
 #ifndef GROUP_H
 #define GROUP_H
 
-typedef enum{
-    STATUS_PENDING,
-    STATUS_MEMBER
-}MemberStatus;
+// Member roles: owner (người tạo group), member (thành viên), pending (chờ duyệt)
+typedef enum {
+    ROLE_OWNER,
+    ROLE_MEMBER,
+    ROLE_PENDING
+} MemberRole;
 
+// Group membership record (1 row in database)
+// Format: group_name member_name role
 typedef struct {
     char group_name[256];
     char member_name[256];
-    int isAdmin;
-    MemberStatus status;
-} Group;
+    MemberRole role;
+} GroupMembership;
 
-const char* status_to_string(MemberStatus status);
-Group create_group(const char* group_name, const char* member_name, int isAdmin, MemberStatus status);
+// Convert role to string
+const char* role_to_string(MemberRole role);
+
+// Parse role from string
+MemberRole string_to_role(const char* str);
 
 #endif

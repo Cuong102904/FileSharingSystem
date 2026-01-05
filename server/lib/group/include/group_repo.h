@@ -22,4 +22,10 @@ int group_create(const char *group_name, const char *user_name);
 char* group_list_all_by_user(const char* member_name);
 int find_group_by_name(const char *group_name);
 
+// Check if user is member of group (owner or member role)
+int is_user_in_group(const char *group_name, const char *username);
+
+// List all members of a group (returns allocated string, caller must free)
+char* group_list_members(const char *group_name);
+
 #endif

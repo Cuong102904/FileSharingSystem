@@ -38,7 +38,11 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
   } else if(strcmp(command, "LIST_GROUPS") == 0) {
     cmd->type = CMD_LIST_GROUPS;
     sscanf(buffer, "%*s %s", cmd->payload.group.user_name);
-    return CMD_LIST_GROUPS; 
+    return CMD_LIST_GROUPS;
+  } else if(strcmp(command, "LIST_MEMBERS") == 0) {
+    cmd->type = CMD_LIST_MEMBERS;
+    sscanf(buffer, "%*s %s", cmd->payload.group.group_name);
+    return CMD_LIST_MEMBERS;
   }
   cmd->type = CMD_UNKNOWN;
   return CMD_UNKNOWN;

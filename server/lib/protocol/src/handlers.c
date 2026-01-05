@@ -131,6 +131,49 @@ void handle_list_groups_by_user(int client_socket) {
   }
 }
 
+void handle_list_members(int client_socket, const char *group_name) {
+  // Get username from client session
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check if group exists
+  if (find_group_by_name(group_name) != 1) {
+    send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
+    return;
+  }
+
+  // Check if user is in the group
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_NOT_IN_GROUP);
+    return;
+  }
+
+  // Get list of members
+  char *members = group_list_members(group_name);
+  if (members != NULL && strlen(members) > 0) {
+    // Combine list and status into single response
+    size_t members_len = strlen(members);
+    size_t status_len = strlen(RESP_OK_LIST_MEMBERS);
+    char *combined = malloc(members_len + status_len + 1);
+    if (combined != NULL) {
+      memcpy(combined, members, members_len);
+      memcpy(combined + members_len, RESP_OK_LIST_MEMBERS, status_len + 1);
+      send(client_socket, combined, members_len + status_len, 0);
+      free(combined);
+    } else {
+      send(client_socket, members, members_len, 0);
+      send_response(client_socket, RESP_OK_LIST_MEMBERS);
+    }
+    free(members);
+  } else {
+    if (members) free(members);
+    send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
+  }
+}
+
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path) {
   char full_path[512];

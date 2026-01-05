@@ -10,6 +10,7 @@ typedef enum {
   CMD_LOGOUT,
   CMD_CREATE_GROUP,
   CMD_LIST_GROUPS,
+  CMD_LIST_MEMBERS,
   CMD_UPLOAD,
   CMD_UNKNOWN
 } CommandType;
@@ -49,6 +50,9 @@ typedef struct {
 #define RESP_OK_CREATE_GROUP "OK CREATE_GROUP"
 #define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
 #define RESP_OK_LIST_GROUP "OK LIST_GROUP"
+#define RESP_OK_LIST_MEMBERS "OK LIST_MEMBERS"
+#define RESP_ERR_NOT_IN_GROUP "ERROR You are not in this group"
+#define RESP_ERR_GROUP_NOT_FOUND "ERROR Group not found"
 #define RESP_ERR_ACCOUNT_EXISTS "ERROR Account already exists"
 #define RESP_ERR_WRONG_PASSWORD "ERROR Wrong password"
 #define RESP_ERR_USER_NOT_FOUND "ERROR User not found"
@@ -71,6 +75,7 @@ void handle_login(int client_socket, const char *username,
                   const char *password);
 void handle_create_group(int client_socket, const char *group_name);
 void handle_list_groups_by_user(int client_socket);
+void handle_list_members(int client_socket, const char *group_name);
 void handle_logout(int client_socket);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);

@@ -16,7 +16,9 @@ int group_create(const char *group_name, const char *user_name){
         pthread_mutex_unlock(&group_db_mutex);
         return GROUP_REPO_ERR_EXISTS;
     }
-    fprintf(file, "%s %s %d %s\n", group_name, user_name, 1, status_to_string(STATUS_MEMBER));
+    // Format: group_name member_name role
+    // Creator is owner
+    fprintf(file, "%s %s %s\n", group_name, user_name, role_to_string(ROLE_OWNER));
     fclose(file);
     pthread_mutex_unlock(&group_db_mutex);
     return GROUP_REPO_OK;
