@@ -34,4 +34,10 @@ int is_user_pending(const char *group_name, const char *username);
 // Add user as pending member to group
 int group_add_pending_member(const char *group_name, const char *username);
 
+// Check if user is owner of group
+int is_user_owner(const char *group_name, const char *username);
+
+// Approve pending member (change role from pending to member)
+int group_approve_member(const char *group_name, const char *username);
+
 #endif
