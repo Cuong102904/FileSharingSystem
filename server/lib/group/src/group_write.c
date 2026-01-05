@@ -24,3 +24,21 @@ int group_create(const char *group_name, const char *user_name){
     return GROUP_REPO_OK;
 }
 
+// Add user as pending member to group
+int group_add_pending_member(const char *group_name, const char *username) {
+    pthread_mutex_lock(&group_db_mutex);
+
+    FILE* file = fopen(GROUP_DB, "a");
+    if(file == NULL){
+        perror("Cannot open groups.txt");
+        pthread_mutex_unlock(&group_db_mutex);
+        return GROUP_REPO_ERR_IO;
+    }
+
+    // Format: group_name member_name role
+    fprintf(file, "%s %s %s\n", group_name, username, role_to_string(ROLE_PENDING));
+    fclose(file);
+    pthread_mutex_unlock(&group_db_mutex);
+    return GROUP_REPO_OK;
+}
+

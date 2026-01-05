@@ -28,4 +28,10 @@ int is_user_in_group(const char *group_name, const char *username);
 // List all members of a group (returns allocated string, caller must free)
 char* group_list_members(const char *group_name);
 
+// Check if user has pending request for group
+int is_user_pending(const char *group_name, const char *username);
+
+// Add user as pending member to group
+int group_add_pending_member(const char *group_name, const char *username);
+
 #endif

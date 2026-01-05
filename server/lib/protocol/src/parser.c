@@ -43,6 +43,10 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     cmd->type = CMD_LIST_MEMBERS;
     sscanf(buffer, "%*s %s", cmd->payload.group.group_name);
     return CMD_LIST_MEMBERS;
+  } else if(strcmp(command, "JOIN_REQ") == 0) {
+    cmd->type = CMD_JOIN_REQ;
+    sscanf(buffer, "%*s %s", cmd->payload.group.group_name);
+    return CMD_JOIN_REQ;
   }
   cmd->type = CMD_UNKNOWN;
   return CMD_UNKNOWN;

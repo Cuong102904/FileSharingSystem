@@ -128,3 +128,26 @@ char* group_list_members(const char *group_name) {
 
     return res;
 }
+
+// Check if user has pending request for group
+int is_user_pending(const char *group_name, const char *username) {
+    FILE* file = fopen(GROUP_DB, "r");
+    if(file == NULL){
+        return 0;
+    }
+
+    char line[512];
+    while(fgets(line, sizeof(line), file)){
+        char g_name[256], u_name[256], role_str[20];
+        if(sscanf(line, "%s %s %s", g_name, u_name, role_str) == 3){
+            if(strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0 &&
+               strcmp(role_str, "pending") == 0){
+                fclose(file);
+                return 1; // user has pending request
+            }
+        }
+    }
+
+    fclose(file);
+    return 0;
+}

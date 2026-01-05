@@ -114,6 +114,9 @@ static void process_request(void *arg) {
     case CMD_LIST_MEMBERS:
         handle_list_members(client_socket, cmd.payload.group.group_name);
         break;
+    case CMD_JOIN_REQ:
+        handle_join_request(client_socket, cmd.payload.group.group_name);
+        break;
     default:
         send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
         break;

@@ -51,8 +51,9 @@ int main() {
   printf("4. CREATE_GROUP <group_name>\n");
   printf("5. LIST_GROUPS\n");
   printf("6. LIST_MEMBERS <group_name>\n");
-  printf("7. UPLOAD <group_name> <local_path> <remote_path>\n");
-  printf("8. QUIT (to exit)\n");
+  printf("7. JOIN_REQ <group_name>\n");
+  printf("8. UPLOAD <group_name> <local_path> <remote_path>\n");
+  printf("9. QUIT (to exit)\n");
   printf("==================================\n\n");
 
   while (1) {
