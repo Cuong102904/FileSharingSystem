@@ -10,6 +10,11 @@ typedef enum {
   CMD_LOGOUT,
   CMD_CREATE_GROUP,
   CMD_LIST_GROUPS,
+  CMD_LIST_MEMBERS,
+  CMD_JOIN_REQ,
+  CMD_APPROVE_JOIN,
+  CMD_INVITE_USER,
+  CMD_ACCEPT_INVITE,
   CMD_UPLOAD,
   CMD_DOWNLOAD,
   CMD_MKDIR,
@@ -67,7 +72,8 @@ typedef struct {
     struct {
       char group_name[256];
       char user_name[256];
-    } group; // CREATE_GROUP, LIST_GROUPS
+      char status[16]; // for ACCEPT_INVITE: accept/reject
+    } group; // CREATE_GROUP, LIST_GROUPS, ACCEPT_INVITE
   } payload;
 } ParsedCommand;
 
@@ -86,6 +92,21 @@ typedef struct {
 #define RESP_OK_CREATE_GROUP "OK CREATE_GROUP"
 #define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
 #define RESP_OK_LIST_GROUP "OK LIST_GROUP"
+#define RESP_OK_LIST_MEMBERS "OK LIST_MEMBERS"
+#define RESP_ERR_NOT_IN_GROUP "ERROR You are not in this group"
+#define RESP_ERR_GROUP_NOT_FOUND "ERROR Group not found"
+#define RESP_OK_JOIN_REQ "OK JOIN_REQ"
+#define RESP_ERR_ALREADY_IN_GROUP "ERROR You are already in this group"
+#define RESP_ERR_ALREADY_PENDING "ERROR You already have a pending request"
+#define RESP_OK_APPROVE_JOIN "OK APPROVE_JOIN"
+#define RESP_ERR_NO_PERMISSION "ERROR No permission"
+#define RESP_ERR_NO_PENDING_REQUEST "ERROR User has no pending request"
+#define RESP_OK_INVITE_USER "OK INVITE_USER"
+#define RESP_OK_ACCEPT_INVITE "OK ACCEPT_INVITE"
+#define RESP_OK_REJECT_INVITE "OK REJECT_INVITE"
+#define RESP_ERR_NOT_INVITED "ERROR You have not been invited to this group"
+#define RESP_ERR_INVALID_STATUS "ERROR Invalid status (use accept or reject)"
+#define RESP_ERR_USER_ALREADY_INVITED "ERROR User already invited"
 #define RESP_ERR_ACCOUNT_EXISTS "ERROR Account already exists"
 #define RESP_ERR_WRONG_PASSWORD "ERROR Wrong password"
 #define RESP_ERR_USER_NOT_FOUND "ERROR User not found"
@@ -110,6 +131,11 @@ void handle_login(int client_socket, const char *username,
                   const char *password);
 void handle_create_group(int client_socket, const char *group_name);
 void handle_list_groups_by_user(int client_socket);
+void handle_list_members(int client_socket, const char *group_name);
+void handle_join_request(int client_socket, const char *group_name);
+void handle_approve_join(int client_socket, const char *group_name, const char *target_user);
+void handle_invite_user(int client_socket, const char *group_name, const char *target_user);
+void handle_accept_invite(int client_socket, const char *group_name, const char *status);
 void handle_logout(int client_socket);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);

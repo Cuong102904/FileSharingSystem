@@ -111,6 +111,24 @@ static void process_request(void *arg) {
   case CMD_LIST_GROUPS:
     handle_list_groups_by_user(client_socket);
     break;
+  case CMD_LIST_MEMBERS:
+    handle_list_members(client_socket, cmd.payload.group.group_name);
+    break;
+  case CMD_JOIN_REQ:
+    handle_join_request(client_socket, cmd.payload.group.group_name);
+    break;
+  case CMD_APPROVE_JOIN:
+    handle_approve_join(client_socket, cmd.payload.group.group_name,
+                        cmd.payload.group.user_name);
+    break;
+  case CMD_INVITE_USER:
+    handle_invite_user(client_socket, cmd.payload.group.group_name,
+                       cmd.payload.group.user_name);
+    break;
+  case CMD_ACCEPT_INVITE:
+    handle_accept_invite(client_socket, cmd.payload.group.group_name,
+                         cmd.payload.group.status);
+    break;
   case CMD_DOWNLOAD:
     handle_download(client_socket, cmd.payload.download.group,
                     cmd.payload.download.path);

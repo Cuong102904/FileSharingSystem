@@ -95,3 +95,9 @@ large_test_*.bin   # Test files created with dd
 *.pdb
 
 storage/
+
+# MacOS
+.DS_Store
+
+# Test
+test.txt

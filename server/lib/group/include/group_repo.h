@@ -23,4 +23,34 @@ char *group_list_all_by_user(const char *member_name);
 int find_group_by_name(const char *group_name);
 int user_is_group_member(const char *username, const char *group_name);
 
+// Check if user is member of group (owner or member role)
+int is_user_in_group(const char *group_name, const char *username);
+
+// List all members of a group (returns allocated string, caller must free)
+char* group_list_members(const char *group_name);
+
+// Check if user has pending request for group
+int is_user_pending(const char *group_name, const char *username);
+
+// Add user as pending member to group
+int group_add_pending_member(const char *group_name, const char *username);
+
+// Check if user is owner of group
+int is_user_owner(const char *group_name, const char *username);
+
+// Approve pending member (change role from pending to member)
+int group_approve_member(const char *group_name, const char *username);
+
+// Check if user has been invited (invited role)
+int is_user_invited(const char *group_name, const char *username);
+
+// Invite user to group (add with invited role)
+int group_invite_user(const char *group_name, const char *username);
+
+// Accept invite (change role from invited to member)
+int group_accept_invite(const char *group_name, const char *username);
+
+// Reject invite (remove invited entry)
+int group_reject_invite(const char *group_name, const char *username);
+
 #endif

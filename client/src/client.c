@@ -51,14 +51,18 @@ int main() {
   printf("3. LOGOUT\n");
   printf("4. CREATE_GROUP <group_name>\n");
   printf("5. LIST_GROUPS\n");
-  printf("6. UPLOAD <group_name> <local_path> <remote_path>\n");
-  printf("7. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
-  printf("8. MKDIR <group_name> <path>\n");
-  printf("9. COPYFILE <group_name> <source_file> <dest_file>\n");
-  printf("10. COPYFOLDER <group_name> <source_folder> <dest_folder>\n");
-  printf("11. MOVEFILE <group_name> <source_file> <dest_file>\n");
-  printf("12. MOVEFOLDER <group_name> <source_folder> <dest_folder>\n");
-  printf("13. QUIT (to exit)\n");
+  printf("6. LIST_MEMBERS <group_name>\n");
+  printf("7. JOIN_REQ <group_name>\n");
+  printf("8. APPROVE_JOIN <group_name> <user_name>\n");
+  printf("9. INVITE_USER <group_name> <user_name>\n");
+  printf("10. UPLOAD <group_name> <local_path> <remote_path>\n");
+  printf("11. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
+  printf("12. MKDIR <group_name> <path>\n");
+  printf("13. COPYFILE <group_name> <source_file> <dest_file>\n");
+  printf("14. COPYFOLDER <group_name> <source_folder> <dest_folder>\n");
+  printf("15. MOVEFILE <group_name> <source_file> <dest_file>\n");
+  printf("16. MOVEFOLDER <group_name> <source_folder> <dest_folder>\n");
+  printf("17. QUIT (to exit)\n");
   printf("==================================\n\n");
 
   while (1) {
