@@ -220,3 +220,55 @@ int group_reject_invite(const char *group_name, const char *username) {
     pthread_mutex_unlock(&group_db_mutex);
     return GROUP_REPO_OK;
 }
+
+int group_remove_member(const char *group_name, const char *username){
+    pthread_mutex_lock(&group_db_mutex);
+
+    FILE* file = fopen(GROUP_DB, "r");
+    if(file == NULL){
+        perror("Cannot open groups.txt");
+        pthread_mutex_unlock(&group_db_mutex);
+        return GROUP_REPO_ERR_IO;
+    }
+
+    char lines[1024][512];
+    int line_count = 0;
+    int found = 0;
+
+    while(fgets(lines[line_count], sizeof(lines[line_count]), file) && line_count < 1024){
+        char g_name[256], u_name[256], role_str[20];
+        if(sscanf(lines[line_count], "%s %s %s", g_name, u_name, role_str) == 3){
+            // If this is the user that needs to be remove, skip
+            if(strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0){
+                found = 1;
+                continue; // Don't increment line_count, effectively removing this line
+            }
+        }
+        line_count++;
+    }
+    fclose(file);
+
+    if(!found){
+        pthread_mutex_unlock(&group_db_mutex);
+        return GROUP_REPO_ERR_NOT_FOUND;
+    }
+
+    // Write all lines back (without the removed entry)
+    file = fopen(GROUP_DB, "w");
+    if(file == NULL){
+        perror("Cannot open groups.txt for writing");
+        pthread_mutex_unlock(&group_db_mutex);
+        return GROUP_REPO_ERR_IO;
+    }
+
+    for(int i = 0; i < line_count; i++){
+        fputs(lines[i], file);
+    }
+
+    fclose(file);
+    pthread_mutex_unlock(&group_db_mutex);
+    return GROUP_REPO_OK;
+}
+
+
+

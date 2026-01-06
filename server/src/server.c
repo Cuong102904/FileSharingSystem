@@ -88,79 +88,82 @@ static void process_request(void *arg) {
     return;
   }
 
-  switch (cmd_type) {
-  case CMD_REGISTER:
-    handle_register(client_socket, cmd.payload.auth.username,
-                    cmd.payload.auth.password);
-    break;
-  case CMD_LOGIN:
-    handle_login(client_socket, cmd.payload.auth.username,
-                 cmd.payload.auth.password);
-    break;
-  case CMD_LOGOUT:
-    handle_logout(client_socket);
-    break;
-  case CMD_UPLOAD:
-    handle_upload(client_socket, cmd.payload.upload.group,
-                  cmd.payload.upload.local_path,
-                  cmd.payload.upload.remote_path);
-    break;
-  case CMD_CREATE_GROUP:
-    handle_create_group(client_socket, cmd.payload.group.group_name);
-    break;
-  case CMD_LIST_GROUPS:
-    handle_list_groups_by_user(client_socket);
-    break;
-  case CMD_LIST_MEMBERS:
-    handle_list_members(client_socket, cmd.payload.group.group_name);
-    break;
-  case CMD_JOIN_REQ:
-    handle_join_request(client_socket, cmd.payload.group.group_name);
-    break;
-  case CMD_APPROVE_JOIN:
-    handle_approve_join(client_socket, cmd.payload.group.group_name,
-                        cmd.payload.group.user_name);
-    break;
-  case CMD_INVITE_USER:
-    handle_invite_user(client_socket, cmd.payload.group.group_name,
-                       cmd.payload.group.user_name);
-    break;
-  case CMD_ACCEPT_INVITE:
-    handle_accept_invite(client_socket, cmd.payload.group.group_name,
-                         cmd.payload.group.status);
-    break;
-  case CMD_DOWNLOAD:
-    handle_download(client_socket, cmd.payload.download.group,
-                    cmd.payload.download.path);
-    break;
-  case CMD_MKDIR:
-    handle_mkdir(client_socket, cmd.payload.mkdir.group,
-                 cmd.payload.mkdir.path);
-    break;
-  case CMD_COPYFILE:
-    handle_copyfile(client_socket, cmd.payload.copyfile.group,
-                    cmd.payload.copyfile.source,
-                    cmd.payload.copyfile.destination);
-    break;
-  case CMD_COPYFOLDER:
-    handle_copyfolder(client_socket, cmd.payload.copyfolder.group,
-                      cmd.payload.copyfolder.source,
-                      cmd.payload.copyfolder.destination);
-    break;
-  case CMD_MOVEFILE:
-    handle_movefile(client_socket, cmd.payload.movefile.group,
-                    cmd.payload.movefile.source,
-                    cmd.payload.movefile.destination);
-    break;
-  case CMD_MOVEFOLDER:
-    handle_movefolder(client_socket, cmd.payload.movefolder.group,
-                      cmd.payload.movefolder.source,
-                      cmd.payload.movefolder.destination);
-    break;
-  default:
-    send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
-    break;
-  }
+    switch (cmd_type) {
+    case CMD_REGISTER:
+        handle_register(client_socket, cmd.payload.auth.username,
+                        cmd.payload.auth.password);
+        break;
+    case CMD_LOGIN:
+        handle_login(client_socket, cmd.payload.auth.username,
+                     cmd.payload.auth.password);
+        break;
+    case CMD_LOGOUT:
+        handle_logout(client_socket);
+        break;
+    case CMD_UPLOAD:
+        handle_upload(client_socket, cmd.payload.upload.group,
+                      cmd.payload.upload.local_path,
+                      cmd.payload.upload.remote_path);
+        break;
+    case CMD_CREATE_GROUP:
+        handle_create_group(client_socket, cmd.payload.group.group_name);
+        break;
+    case CMD_LIST_GROUPS:
+        handle_list_groups_by_user(client_socket);
+        break;
+    case CMD_LIST_MEMBERS:
+        handle_list_members(client_socket, cmd.payload.group.group_name);
+        break;
+    case CMD_JOIN_REQ:
+        handle_join_request(client_socket, cmd.payload.group.group_name);
+        break;
+    case CMD_APPROVE_JOIN:
+        handle_approve_join(client_socket, cmd.payload.group.group_name, cmd.payload.group.user_name);
+        break;
+    case CMD_INVITE_USER:
+        handle_invite_user(client_socket, cmd.payload.group.group_name, cmd.payload.group.user_name);
+        break;
+    case CMD_RESPOND_INVITE:
+        handle_respond_invite(client_socket, cmd.payload.group.group_name, cmd.payload.group.status);
+        break;
+    case CMD_LEAVE_GROUP:
+        handle_leave_group(client_socket, cmd.payload.group.group_name);
+        break;
+    case CMD_KICK_MEMBER:
+        handle_kick_member(client_socket, cmd.payload.group.group_name, cmd.payload.group.user_name);
+        break;
+    case CMD_DOWNLOAD:
+      handle_download(client_socket, cmd.payload.download.group,
+                      cmd.payload.download.path);
+      break;
+    case CMD_MKDIR:
+      handle_mkdir(client_socket, cmd.payload.mkdir.group,
+                    cmd.payload.mkdir.path);
+      break;
+    case CMD_COPYFILE:
+      handle_copyfile(client_socket, cmd.payload.copyfile.group,
+                      cmd.payload.copyfile.source,
+                      cmd.payload.copyfile.destination);
+      break;
+    case CMD_COPYFOLDER:
+      handle_copyfolder(client_socket, cmd.payload.copyfolder.group,
+                        cmd.payload.copyfolder.source,
+                        cmd.payload.copyfolder.destination);
+      break;
+    case CMD_MOVEFILE:
+      handle_movefile(client_socket, cmd.payload.movefile.group,
+                      cmd.payload.movefile.source,
+                      cmd.payload.movefile.destination);
+      break;
+    case CMD_MOVEFOLDER:
+      handle_movefolder(client_socket, cmd.payload.movefolder.group,
+                        cmd.payload.movefolder.source,
+                        cmd.payload.movefolder.destination);
+      break;
+    default:
+      send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
+      break;
+    }
 
   free(task);
 }

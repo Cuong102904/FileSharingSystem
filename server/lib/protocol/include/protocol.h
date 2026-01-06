@@ -14,8 +14,10 @@ typedef enum {
   CMD_JOIN_REQ,
   CMD_APPROVE_JOIN,
   CMD_INVITE_USER,
-  CMD_ACCEPT_INVITE,
+  CMD_RESPOND_INVITE,
   CMD_UPLOAD,
+  CMD_LEAVE_GROUP,
+  CMD_KICK_MEMBER,
   CMD_DOWNLOAD,
   CMD_MKDIR,
   CMD_COPYFILE,
@@ -72,8 +74,8 @@ typedef struct {
     struct {
       char group_name[256];
       char user_name[256];
-      char status[16]; // for ACCEPT_INVITE: accept/reject
-    } group; // CREATE_GROUP, LIST_GROUPS, ACCEPT_INVITE
+      char status[16]; // for ACCEPT_INVITE/REJECT_INVITE: accept/reject
+    } group; // CREATE_GROUP, LIST_GROUPS, ACCEPT_INVITE, REJECT_INVITE, LEAVE_GROUP, KICK_MEMBER
   } payload;
 } ParsedCommand;
 
@@ -93,7 +95,7 @@ typedef struct {
 #define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
 #define RESP_OK_LIST_GROUP "OK LIST_GROUP"
 #define RESP_OK_LIST_MEMBERS "OK LIST_MEMBERS"
-#define RESP_ERR_NOT_IN_GROUP "ERROR You are not in this group"
+#define RESP_ERR_NOT_IN_GROUP "ERROR User is not in this group"
 #define RESP_ERR_GROUP_NOT_FOUND "ERROR Group not found"
 #define RESP_OK_JOIN_REQ "OK JOIN_REQ"
 #define RESP_ERR_ALREADY_IN_GROUP "ERROR You are already in this group"
@@ -120,6 +122,8 @@ typedef struct {
 #define RESP_ERR_PERMISSION_DENIED "ERROR Permission denied"
 #define RESP_ERR_ALREADY_LOGGED_IN "ERROR Already logged in"
 #define RESP_ERR_NOT_LOGGED_IN "ERROR Not logged in"
+#define RESP_OK_LEAVE_GROUP "OK LEAVE_GROUP"
+#define RESP_OK_KICK_MEMBER "OK KICK_MEMBER"
 
 // Parser functions
 CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd);
@@ -135,7 +139,9 @@ void handle_list_members(int client_socket, const char *group_name);
 void handle_join_request(int client_socket, const char *group_name);
 void handle_approve_join(int client_socket, const char *group_name, const char *target_user);
 void handle_invite_user(int client_socket, const char *group_name, const char *target_user);
-void handle_accept_invite(int client_socket, const char *group_name, const char *status);
+void handle_respond_invite(int client_socket, const char *group_name, const char *status);
+void handle_leave_group(int client_socket, const char *group_name);
+void handle_kick_member(int client_socket, const char *group_name, const char *member_name);
 void handle_logout(int client_socket);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);

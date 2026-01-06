@@ -12,6 +12,32 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 
+const char menu[] =
+    "Connected to server successfully!\n"
+    "==================================\n"
+    "Available commands:\n"
+    "1. REGISTER <username> <password>\n"
+    "2. LOGIN <username> <password>\n"
+    "3. LOGOUT\n"
+    "4. CREATE_GROUP <group_name>\n"
+    "5. LIST_GROUPS\n"
+    "6. LIST_MEMBERS <group_name>\n"
+    "7. KICK_MEMBER <group_name> <user_name>\n"
+    "8. RESPOND_INVITE <group_name> <status>\n"
+    "9. JOIN_REQ <group_name>\n"
+    "10. APPROVE_JOIN <group_name> <user_name>\n"
+    "11. INVITE_USER <group_name> <user_name>\n"
+    "12. UPLOAD <group_name> <local_path> <remote_path>\n"
+    "13. LEAVE_GROUP <group_name>\n"
+    "14. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n"
+    "15. MKDIR <group_name> <path>\n"
+    "16. COPYFILE <group_name> <source_file> <dest_file>\n"
+    "17. COPYFOLDER <group_name> <source_folder> <dest_folder>\n"
+    "18. MOVEFILE <group_name> <source_file> <dest_folder>/\n"
+    "19. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n"
+    "*. QUIT (to exit)\n"
+    "==================================\n\n";
+
 int main() {
   int client_socket;
   struct sockaddr_in server_addr;
@@ -42,30 +68,8 @@ int main() {
     close(client_socket);
     exit(EXIT_FAILURE);
   }
-
-  printf("Connected to server successfully!\n");
-  printf("==================================\n");
-  printf("Available commands:\n");
-  printf("1. REGISTER <username> <password>\n");
-  printf("2. LOGIN <username> <password>\n");
-  printf("3. LOGOUT\n");
-  printf("4. CREATE_GROUP <group_name>\n");
-  printf("5. LIST_GROUPS\n");
-  printf("6. LIST_MEMBERS <group_name>\n");
-  printf("7. JOIN_REQ <group_name>\n");
-  printf("8. APPROVE_JOIN <group_name> <user_name>\n");
-  printf("9. INVITE_USER <group_name> <user_name>\n");
-  printf("10. UPLOAD <group_name> <local_path> <remote_path>\n");
-  printf("11. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
-  printf("12. MKDIR <group_name> <path>\n");
-  printf("13. COPYFILE <group_name> <source_file> <dest_file>\n");
-  printf("14. COPYFOLDER <group_name> <source_folder> <dest_folder>\n");
-  printf("15. MOVEFILE <group_name> <source_file> <dest_folder>/\n");
-  printf("16. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n");
-  printf("17. QUIT (to exit)\n");
-  printf("==================================\n\n");
-
   while (1) {
+    printf("%s", menu);
     printf("Enter command: ");
     if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
       break;

@@ -319,8 +319,7 @@ void handle_invite_user(int client_socket, const char *group_name,
   }
 }
 
-void handle_accept_invite(int client_socket, const char *group_name,
-                          const char *status) {
+void handle_respond_invite(int client_socket, const char *group_name, const char *status) {
   // Get username from client session
   const char *username = client_session_get_username(client_socket);
   if (username == NULL) {
@@ -358,6 +357,71 @@ void handle_accept_invite(int client_socket, const char *group_name,
   } else {
     send_response(client_socket, RESP_ERR_INVALID_STATUS);
   }
+}
+
+void handle_leave_group(int client_socket, const char *group_name){
+  // Get username from client session
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check if group exists
+  if (find_group_by_name(group_name) != 1) {
+    send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
+    return;
+  }
+
+  // Check if user is in the group
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_NOT_IN_GROUP);
+    return;
+  }
+
+  int result = group_remove_member(group_name, username);
+  if(result == GROUP_REPO_OK){
+    send_response(client_socket, RESP_OK_LEAVE_GROUP);
+  }
+  else if(result == GROUP_REPO_ERR_NOT_FOUND){
+    send_response(client_socket, RESP_ERR_NOT_IN_GROUP);
+  }
+  else{
+    send_response(client_socket, RESP_ERR_DB_ERROR);
+  }
+}
+
+void handle_kick_member(int client_socket, const char *group_name, const char *member_name){
+  // Get username from client session
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check if current user is owner of the group
+  if (!is_user_owner(group_name, username)) {
+    send_response(client_socket, RESP_ERR_NO_PERMISSION);
+    return;
+  }
+
+  // Check if group exists
+  if (find_group_by_name(group_name) != 1) {
+    send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
+    return;
+  }
+
+  int result = group_remove_member(group_name, member_name);
+  if(result == GROUP_REPO_OK){
+    send_response(client_socket, RESP_OK_KICK_MEMBER);
+  }
+  else if(result == GROUP_REPO_ERR_NOT_FOUND){
+    send_response(client_socket, RESP_ERR_NOT_IN_GROUP);
+  }
+  else{
+    send_response(client_socket, RESP_ERR_DB_ERROR);
+  }
+
 }
 
 void handle_upload(int client_socket, const char *group_name,

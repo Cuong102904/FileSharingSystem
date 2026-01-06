@@ -53,4 +53,7 @@ int group_accept_invite(const char *group_name, const char *username);
 // Reject invite (remove invited entry)
 int group_reject_invite(const char *group_name, const char *username);
 
+// Remove user from group
+int group_remove_member(const char *group_name, const char *username);
+
 #endif
