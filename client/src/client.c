@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 // Import file upload library
+#include "../lib/file_ops/include/file_download.h"
 #include "../lib/file_ops/include/file_upload.h"
 
 #define PORT 8080
@@ -55,7 +56,13 @@ int main() {
   printf("8. APPROVE_JOIN <group_name> <user_name>\n");
   printf("9. INVITE_USER <group_name> <user_name>\n");
   printf("10. UPLOAD <group_name> <local_path> <remote_path>\n");
-  printf("11. QUIT (to exit)\n");
+  printf("11. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
+  printf("12. MKDIR <group_name> <path>\n");
+  printf("13. COPYFILE <group_name> <source_file> <dest_file>\n");
+  printf("14. COPYFOLDER <group_name> <source_folder> <dest_folder>\n");
+  printf("15. MOVEFILE <group_name> <source_file> <dest_folder>/\n");
+  printf("16. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n");
+  printf("17. QUIT (to exit)\n");
   printf("==================================\n\n");
 
   while (1) {
@@ -73,7 +80,7 @@ int main() {
     }
 
     // Handle File Upload command
-    if (strncmp(buffer, "UPLOAD", 6) == 0) {
+    else if (strncmp(buffer, "UPLOAD", 6) == 0) {
       char group_name[256];
       char local_path[256];
       char remote_path[256];
@@ -87,6 +94,78 @@ int main() {
       } else {
         printf("Usage: UPLOAD <group_name> <local_path> <remote_path>\n");
         printf("Example: UPLOAD group1 file.txt docs/\n");
+      }
+      continue;
+    } else if (strncmp(buffer, "DOWNLOAD", 8) == 0) {
+      char group_name[256];
+      char server_path[256];
+      char local_path[256];
+
+      int parsed = sscanf(buffer, "DOWNLOAD %s %s %s", group_name, server_path,
+                          local_path);
+
+      if (parsed == 3) {
+        file_download(client_socket, group_name, server_path, local_path);
+      } else {
+        printf("Usage: DOWNLOAD <group_name> <path_on_server> "
+               "<local_save_path>\n");
+        printf(
+            "Example: DOWNLOAD 123 docs/file.txt /home/user/downloaded.txt\n");
+      }
+      continue;
+    }
+
+    // MKDIR command
+    if (strncmp(buffer, "MKDIR", 5) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // COPYFILE command
+    if (strncmp(buffer, "COPYFILE", 8) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // COPYFOLDER command
+    if (strncmp(buffer, "COPYFOLDER", 10) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // MOVEFILE command
+    if (strncmp(buffer, "MOVEFILE", 8) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // MOVEFOLDER command
+    if (strncmp(buffer, "MOVEFOLDER", 10) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
       }
       continue;
     }

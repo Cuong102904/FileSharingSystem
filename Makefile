@@ -38,6 +38,7 @@ SERVER_SRCS = \
 	$(SERVER_DIR)/lib/protocol/src/parser.c \
 	$(SERVER_DIR)/lib/protocol/src/handlers.c \
 	$(SERVER_DIR)/lib/file_ops/src/file_transfer.c \
+	$(SERVER_DIR)/lib/file_ops/src/directory_ops.c \
 	$(SERVER_DIR)/lib/group/src/group_read.c \
 	$(SERVER_DIR)/lib/group/src/group_write.c \
 	$(SERVER_DIR)/lib/group/src/group_repo.c \
@@ -48,7 +49,8 @@ SERVER_TARGET = $(BIN_DIR)/server
 # --- CLIENT SOURCES ---
 CLIENT_SRCS = \
 	$(CLIENT_DIR)/src/client.c \
-	$(CLIENT_DIR)/lib/file_ops/src/file_upload.c
+	$(CLIENT_DIR)/lib/file_ops/src/file_upload.c \
+	$(CLIENT_DIR)/lib/file_ops/src/file_download.c
 
 CLIENT_TARGET = $(BIN_DIR)/client
 
