@@ -55,14 +55,18 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     cmd->type = CMD_INVITE_USER;
     sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.user_name);
     return CMD_INVITE_USER;
-  } else if(strcmp(command, "ACCEPT_INVITE") == 0) {
-    cmd->type = CMD_ACCEPT_INVITE;
+  } else if(strcmp(command, "RESPOND_INVITE") == 0) {
+    cmd->type = CMD_RESPOND_INVITE;
     sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.status);
-    return CMD_ACCEPT_INVITE;
+    return CMD_RESPOND_INVITE;
   } else if(strcmp(command, "LEAVE_GROUP") == 0){
     cmd->type = CMD_LEAVE_GROUP;
     sscanf(buffer, "%*s %s", cmd->payload.group.group_name);
     return CMD_LEAVE_GROUP;
+  } else if(strcmp(command, "KICK_MEMBER") == 0){
+    cmd->type = CMD_KICK_MEMBER;
+    sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.user_name);
+    return CMD_KICK_MEMBER;
   }
   cmd->type = CMD_UNKNOWN;
   return CMD_UNKNOWN;

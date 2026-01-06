@@ -221,7 +221,7 @@ int group_reject_invite(const char *group_name, const char *username) {
     return GROUP_REPO_OK;
 }
 
-int group_leave(const char *group_name, const char *username){
+int group_remove_member(const char *group_name, const char *username){
     pthread_mutex_lock(&group_db_mutex);
 
     FILE* file = fopen(GROUP_DB, "r");
@@ -238,7 +238,7 @@ int group_leave(const char *group_name, const char *username){
     while(fgets(lines[line_count], sizeof(lines[line_count]), file) && line_count < 1024){
         char g_name[256], u_name[256], role_str[20];
         if(sscanf(lines[line_count], "%s %s %s", g_name, u_name, role_str) == 3){
-            // If this is the user wanting to leave, skip it
+            // If this is the user that needs to be remove, skip
             if(strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0){
                 found = 1;
                 continue; // Don't increment line_count, effectively removing this line
@@ -269,3 +269,6 @@ int group_leave(const char *group_name, const char *username){
     pthread_mutex_unlock(&group_db_mutex);
     return GROUP_REPO_OK;
 }
+
+
+

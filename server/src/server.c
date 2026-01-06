@@ -123,11 +123,14 @@ static void process_request(void *arg) {
     case CMD_INVITE_USER:
         handle_invite_user(client_socket, cmd.payload.group.group_name, cmd.payload.group.user_name);
         break;
-    case CMD_ACCEPT_INVITE:
-        handle_accept_invite(client_socket, cmd.payload.group.group_name, cmd.payload.group.status);
+    case CMD_RESPOND_INVITE:
+        handle_respond_invite(client_socket, cmd.payload.group.group_name, cmd.payload.group.status);
         break;
     case CMD_LEAVE_GROUP:
         handle_leave_group(client_socket, cmd.payload.group.group_name);
+        break;
+    case CMD_KICK_MEMBER:
+        handle_kick_member(client_socket, cmd.payload.group.group_name, cmd.payload.group.user_name);
         break;
     default:
         send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
