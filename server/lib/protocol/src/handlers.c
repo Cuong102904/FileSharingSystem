@@ -172,7 +172,8 @@ void handle_list_members(int client_socket, const char *group_name) {
     }
     free(members);
   } else {
-    if (members) free(members);
+    if (members)
+      free(members);
     send_response(client_socket, RESP_ERR_GROUP_NOT_FOUND);
   }
 }
@@ -212,7 +213,8 @@ void handle_join_request(int client_socket, const char *group_name) {
   }
 }
 
-void handle_approve_join(int client_socket, const char *group_name, const char *target_user) {
+void handle_approve_join(int client_socket, const char *group_name,
+                         const char *target_user) {
   // Get username from client session (the approver)
   const char *username = client_session_get_username(client_socket);
   if (username == NULL) {
@@ -247,7 +249,8 @@ void handle_approve_join(int client_socket, const char *group_name, const char *
   }
 }
 
-void handle_invite_user(int client_socket, const char *group_name, const char *target_user) {
+void handle_invite_user(int client_socket, const char *group_name,
+                        const char *target_user) {
   // Get username from client session (the inviter)
   const char *username = client_session_get_username(client_socket);
   if (username == NULL) {
@@ -273,7 +276,8 @@ void handle_invite_user(int client_socket, const char *group_name, const char *t
     if (strcmp(username, target_user) == 0) {
       snprintf(error_msg, BUFFER_SIZE, "ERROR You are already in this group");
     } else {
-      snprintf(error_msg, BUFFER_SIZE, "ERROR %s is already in this group", target_user);
+      snprintf(error_msg, BUFFER_SIZE, "ERROR %s is already in this group",
+               target_user);
     }
     send_response(client_socket, error_msg);
     return;
@@ -283,9 +287,11 @@ void handle_invite_user(int client_socket, const char *group_name, const char *t
   if (is_user_pending(group_name, target_user)) {
     char error_msg[BUFFER_SIZE];
     if (strcmp(username, target_user) == 0) {
-      snprintf(error_msg, BUFFER_SIZE, "ERROR You already have a pending request");
+      snprintf(error_msg, BUFFER_SIZE,
+               "ERROR You already have a pending request");
     } else {
-      snprintf(error_msg, BUFFER_SIZE, "ERROR %s already has a pending request", target_user);
+      snprintf(error_msg, BUFFER_SIZE, "ERROR %s already has a pending request",
+               target_user);
     }
     send_response(client_socket, error_msg);
     return;
@@ -297,7 +303,8 @@ void handle_invite_user(int client_socket, const char *group_name, const char *t
     if (strcmp(username, target_user) == 0) {
       snprintf(error_msg, BUFFER_SIZE, "ERROR You have already been invited");
     } else {
-      snprintf(error_msg, BUFFER_SIZE, "ERROR %s has already been invited", target_user);
+      snprintf(error_msg, BUFFER_SIZE, "ERROR %s has already been invited",
+               target_user);
     }
     send_response(client_socket, error_msg);
     return;
@@ -312,7 +319,8 @@ void handle_invite_user(int client_socket, const char *group_name, const char *t
   }
 }
 
-void handle_accept_invite(int client_socket, const char *group_name, const char *status) {
+void handle_accept_invite(int client_socket, const char *group_name,
+                          const char *status) {
   // Get username from client session
   const char *username = client_session_get_username(client_socket);
   if (username == NULL) {
@@ -370,7 +378,7 @@ void handle_upload(int client_socket, const char *group_name,
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, "ERROR You are not a member of this group");
     return;
   }
@@ -474,7 +482,7 @@ void handle_download(int client_socket, const char *group_name,
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, "ERROR You are not a member of this group");
     return;
   }
@@ -549,7 +557,7 @@ void handle_mkdir(int client_socket, const char *group_name, const char *path) {
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
     return;
   }
@@ -603,7 +611,7 @@ void handle_copyfile(int client_socket, const char *group_name,
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
     return;
   }
@@ -666,7 +674,7 @@ void handle_copyfolder(int client_socket, const char *group_name,
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
     return;
   }
@@ -702,7 +710,7 @@ void handle_copyfolder(int client_socket, const char *group_name,
 
 void handle_movefile(int client_socket, const char *group_name,
                      const char *source, const char *destination) {
-  char src_path[512], dst_path[512];
+  char src_path[1024], dst_folder[512], dst_path[1024];
 
   // Security checks
   if (strstr(source, "..") || strstr(destination, "..") ||
@@ -719,9 +727,10 @@ void handle_movefile(int client_socket, const char *group_name,
     return;
   }
 
-  // Validate destination is a file path
-  if (!is_file_path(destination)) {
-    send_response(client_socket, "ERROR Destination must be a file path");
+  // Validate destination is a FOLDER (must not have extension)
+  if (is_file_path(destination)) {
+    send_response(client_socket,
+                  "ERROR Destination must be a folder (e.g. archive/)");
     return;
   }
 
@@ -732,20 +741,36 @@ void handle_movefile(int client_socket, const char *group_name,
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
     return;
   }
 
-  // Construct paths
+  // Construct source path
   snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
-  snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
+
+  // Extract filename from source
+  char source_copy[512];
+  strncpy(source_copy, source, sizeof(source_copy) - 1);
+  source_copy[sizeof(source_copy) - 1] = '\0';
+  char *filename = basename(source_copy);
+
+  // Construct destination folder path and full destination path
+  snprintf(dst_folder, sizeof(dst_folder), "storage/%s/%s", group_name,
            destination);
+  snprintf(dst_path, sizeof(dst_path), "%s/%s", dst_folder, filename);
 
   // Check source exists AND is a file
   if (validate_path_type(src_path, 1) != 0) {
     send_response(client_socket,
                   "ERROR Source file not found or is not a file");
+    return;
+  }
+
+  // Check destination folder exists
+  if (validate_path_type(dst_folder, 0) != 0) {
+    send_response(client_socket,
+                  "ERROR Destination folder not found (use MKDIR first)");
     return;
   }
 
@@ -760,7 +785,7 @@ void handle_movefile(int client_socket, const char *group_name,
 
 void handle_movefolder(int client_socket, const char *group_name,
                        const char *source, const char *destination) {
-  char src_path[512], dst_path[512];
+  char src_path[1024], dst_folder[512], dst_path[1024];
 
   // Security checks
   if (strstr(source, "..") || strstr(destination, "..") ||
@@ -776,9 +801,9 @@ void handle_movefolder(int client_socket, const char *group_name,
     return;
   }
 
-  // Validate destination is a folder path
-  if (!is_folder_path(destination)) {
-    send_response(client_socket, "ERROR Destination must be a folder path");
+  // Validate destination is a FOLDER
+  if (is_file_path(destination)) {
+    send_response(client_socket, "ERROR Destination must be a folder");
     return;
   }
 
@@ -789,20 +814,35 @@ void handle_movefolder(int client_socket, const char *group_name,
     return;
   }
 
-  if (!user_is_group_member(username, group_name)) {
+  if (!is_user_in_group(group_name, username)) {
     send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
     return;
   }
 
-  // Construct paths
+  // Construct source path
   snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
-  snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
+
+  // Extract folder name from source
+  char source_copy[512];
+  strncpy(source_copy, source, sizeof(source_copy) - 1);
+  source_copy[sizeof(source_copy) - 1] = '\0';
+  char *foldername = basename(source_copy);
+
+  // Construct destination folder path and full destination path
+  snprintf(dst_folder, sizeof(dst_folder), "storage/%s/%s", group_name,
            destination);
+  snprintf(dst_path, sizeof(dst_path), "%s/%s", dst_folder, foldername);
 
   // Check source exists AND is a directory
   if (validate_path_type(src_path, 0) != 0) {
     send_response(client_socket,
                   "ERROR Source folder not found or is not a folder");
+    return;
+  }
+
+  // Check destination folder exists
+  if (validate_path_type(dst_folder, 0) != 0) {
+    send_response(client_socket, "ERROR Destination folder not found");
     return;
   }
 

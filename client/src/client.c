@@ -60,8 +60,8 @@ int main() {
   printf("12. MKDIR <group_name> <path>\n");
   printf("13. COPYFILE <group_name> <source_file> <dest_file>\n");
   printf("14. COPYFOLDER <group_name> <source_folder> <dest_folder>\n");
-  printf("15. MOVEFILE <group_name> <source_file> <dest_file>\n");
-  printf("16. MOVEFOLDER <group_name> <source_folder> <dest_folder>\n");
+  printf("15. MOVEFILE <group_name> <source_file> <dest_folder>/\n");
+  printf("16. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n");
   printf("17. QUIT (to exit)\n");
   printf("==================================\n\n");
 
