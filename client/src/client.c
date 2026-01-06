@@ -54,9 +54,11 @@ int main() {
   printf("6. UPLOAD <group_name> <local_path> <remote_path>\n");
   printf("7. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n");
   printf("8. MKDIR <group_name> <path>\n");
-  printf("9. COPY <group_name> <source_path> <destination_path>\n");
-  printf("10. MOVE <group_name> <source_path> <destination_path>\n");
-  printf("11. QUIT (to exit)\n");
+  printf("9. COPYFILE <group_name> <source_file> <dest_file>\n");
+  printf("10. COPYFOLDER <group_name> <source_folder> <dest_folder>\n");
+  printf("11. MOVEFILE <group_name> <source_file> <dest_file>\n");
+  printf("12. MOVEFOLDER <group_name> <source_folder> <dest_folder>\n");
+  printf("13. QUIT (to exit)\n");
   printf("==================================\n\n");
 
   while (1) {
@@ -120,8 +122,8 @@ int main() {
       continue;
     }
 
-    // COPY command
-    if (strncmp(buffer, "COPY", 4) == 0) {
+    // COPYFILE command
+    if (strncmp(buffer, "COPYFILE", 8) == 0) {
       send(client_socket, buffer, strlen(buffer), 0);
       int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
       if (n > 0) {
@@ -131,8 +133,30 @@ int main() {
       continue;
     }
 
-    // MOVE command
-    if (strncmp(buffer, "MOVE", 4) == 0) {
+    // COPYFOLDER command
+    if (strncmp(buffer, "COPYFOLDER", 10) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // MOVEFILE command
+    if (strncmp(buffer, "MOVEFILE", 8) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // MOVEFOLDER command
+    if (strncmp(buffer, "MOVEFOLDER", 10) == 0) {
       send(client_socket, buffer, strlen(buffer), 0);
       int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
       if (n > 0) {

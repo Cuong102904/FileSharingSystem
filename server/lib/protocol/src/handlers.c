@@ -169,21 +169,15 @@ void handle_upload(int client_socket, const char *group_name,
     filename = client_path_copy;
   }
 
-  // Construct full save path: storage/<group_name>/<server_path>/<filename>
-  // e.g., "storage/group1/docs/README.md"
   snprintf(full_path, sizeof(full_path), "storage/%s/%s/%s", group_name,
            server_path, filename);
 
-  // Create directory structure if needed
   strncpy(dir_path, full_path, sizeof(dir_path) - 1);
   dir_path[sizeof(dir_path) - 1] = '\0';
 
-  // Get directory part of full_path
   char *last_slash = strrchr(dir_path, '/');
   if (last_slash) {
-    *last_slash = '\0'; // Truncate to get directory path
-
-    // Create directories recursively
+    *last_slash = '\0';
     char temp_path[512] = "";
     char *token = strtok(dir_path, "/");
     while (token != NULL) {
@@ -205,7 +199,6 @@ void handle_upload(int client_socket, const char *group_name,
   // Send ready signal
   send_response(client_socket, RESP_OK_UPLOAD_READY);
 
-  // ===== FIX: Set socket to BLOCKING mode for file transfer =====
   // Save current flags
   int flags = fcntl(client_socket, F_GETFL, 0);
   if (flags == -1) {
@@ -220,7 +213,6 @@ void handle_upload(int client_socket, const char *group_name,
     send_response(client_socket, "ERROR Server error");
     return;
   }
-  // ===== END FIX =====
 
   // Receive file size
   long filesize = 0;
@@ -231,14 +223,11 @@ void handle_upload(int client_socket, const char *group_name,
     return;
   }
 
-  // Delegate file I/O to file_ops module
   long bytes_received = receive_file(client_socket, full_path, filesize);
 
-  // ===== FIX: Restore socket to NON-BLOCKING mode =====
   if (fcntl(client_socket, F_SETFL, flags) == -1) {
     perror("fcntl restore failed");
   }
-  // ===== END FIX =====
 
   // Send completion status
   if (bytes_received == filesize) {
@@ -308,21 +297,16 @@ void handle_download(int client_socket, const char *group_name,
     return;
   }
 
-  // Wait for client to be ready (prevent TCP stream coalescing)
-  // Now in blocking mode, so this will correctly wait for data
   char ack[64];
   int ack_len = recv(client_socket, ack, sizeof(ack), 0);
   if (ack_len <= 0) {
     printf("Error waiting for client ACK (recv returned %d)\n", ack_len);
-    // Restore non-blocking before returning
     fcntl(client_socket, F_SETFL, flags);
     return;
   }
 
-  // Send file content
   long bytes_sent = send_file(client_socket, full_path);
 
-  // Restore socket to NON-BLOCKING mode
   fcntl(client_socket, F_SETFL, flags);
 
   if (bytes_sent != filesize) {
@@ -371,14 +355,26 @@ void handle_mkdir(int client_socket, const char *group_name, const char *path) {
   send_response(client_socket, RESP_OK_MKDIR);
 }
 
-void handle_copy(int client_socket, const char *group_name, const char *source,
-                 const char *destination) {
+void handle_copyfile(int client_socket, const char *group_name,
+                     const char *source, const char *destination) {
   char src_path[512], dst_path[512];
 
   // Security checks
   if (strstr(source, "..") || strstr(destination, "..") ||
       strstr(group_name, "..")) {
     send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  if (!is_file_path(source)) {
+    send_response(client_socket,
+                  "ERROR Source must be a file (use COPYFOLDER for "
+                  "directories)");
+    return;
+  }
+
+  if (!is_file_path(destination)) {
+    send_response(client_socket, "ERROR Destination must be a file path");
     return;
   }
 
@@ -394,74 +390,54 @@ void handle_copy(int client_socket, const char *group_name, const char *source,
     return;
   }
 
-  // Construct paths
   snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
   snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
            destination);
 
-  // Check source exists
-  struct stat st;
-  if (stat(src_path, &st) != 0) {
-    char error_msg[256];
-    snprintf(error_msg, sizeof(error_msg), "ERROR Source path not found: %s",
-             source);
-    send_response(client_socket, error_msg);
+  // Check source exists AND is a file
+  if (validate_path_type(src_path, 1) != 0) {
+    send_response(client_socket,
+                  "ERROR Source file not found or is not a file");
     return;
   }
 
-  // Check if destination parent directory exists
+  // Check destination parent directory exists
   if (check_parent_directory_exists(dst_path) != 0) {
-    char error_msg[512];
-    // Extract folder name from destination path
-    char dst_dir[512];
-    strncpy(dst_dir, dst_path, sizeof(dst_dir) - 1);
-    dst_dir[sizeof(dst_dir) - 1] = '\0';
-
-    char *last_slash = strrchr(dst_dir, '/');
-    if (last_slash) {
-      *last_slash = '\0';
-      const char *folder_part = strchr(dst_dir + 8, '/');
-      if (folder_part) {
-        folder_part = strchr(folder_part + 1, '/');
-        if (folder_part)
-          folder_part++;
-      }
-
-      // Truncate path if too long for error message
-      char truncated_path[256];
-      if (folder_part) {
-        strncpy(truncated_path, folder_part, sizeof(truncated_path) - 1);
-        truncated_path[sizeof(truncated_path) - 1] = '\0';
-      }
-
-      snprintf(error_msg, sizeof(error_msg),
-               "ERROR Destination folder not found: %s (use MKDIR first)",
-               folder_part ? truncated_path : "unknown");
-    } else {
-      snprintf(error_msg, sizeof(error_msg),
-               "ERROR Destination folder not found (use MKDIR first)");
-    }
-    send_response(client_socket, error_msg);
+    send_response(client_socket,
+                  "ERROR Destination folder not found (use MKDIR first)");
     return;
   }
 
-  // Copy using directory_ops
+  // Perform copy (reuse existing logic)
   if (copy_path(src_path, dst_path) != 0) {
-    send_response(client_socket, "ERROR Copy operation failed");
+    send_response(client_socket, "ERROR Copy file operation failed");
     return;
   }
 
-  send_response(client_socket, RESP_OK_COPY);
+  send_response(client_socket, RESP_OK_COPYFILE);
 }
 
-void handle_move(int client_socket, const char *group_name, const char *source,
-                 const char *destination) {
+void handle_copyfolder(int client_socket, const char *group_name,
+                       const char *source, const char *destination) {
   char src_path[512], dst_path[512];
 
   // Security checks
   if (strstr(source, "..") || strstr(destination, "..") ||
       strstr(group_name, "..")) {
     send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Validate source is a folder path (no extension)
+  if (!is_folder_path(source)) {
+    send_response(client_socket,
+                  "ERROR Source must be a folder (use COPYFILE for files)");
+    return;
+  }
+
+  // Validate destination is a folder path
+  if (!is_folder_path(destination)) {
+    send_response(client_socket, "ERROR Destination must be a folder path");
     return;
   }
 
@@ -482,21 +458,141 @@ void handle_move(int client_socket, const char *group_name, const char *source,
   snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
            destination);
 
-  // Check source exists
-  struct stat st;
-  if (stat(src_path, &st) != 0) {
-    char error_msg[256];
-    snprintf(error_msg, sizeof(error_msg), "ERROR Source path not found: %s",
-             source);
-    send_response(client_socket, error_msg);
+  // Check source exists AND is a directory
+  if (validate_path_type(src_path, 0) != 0) {
+    send_response(client_socket,
+                  "ERROR Source folder not found or is not a folder");
     return;
   }
 
-  // Move using directory_ops
+  // Check destination parent directory exists
+  if (check_parent_directory_exists(dst_path) != 0) {
+    send_response(client_socket,
+                  "ERROR Destination parent folder not found (use MKDIR "
+                  "first)");
+    return;
+  }
+
+  // Perform copy (reuse existing logic)
+  if (copy_path(src_path, dst_path) != 0) {
+    send_response(client_socket, "ERROR Copy folder operation failed");
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_COPYFOLDER);
+}
+
+void handle_movefile(int client_socket, const char *group_name,
+                     const char *source, const char *destination) {
+  char src_path[512], dst_path[512];
+
+  // Security checks
+  if (strstr(source, "..") || strstr(destination, "..") ||
+      strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Validate source is a file path
+  if (!is_file_path(source)) {
+    send_response(client_socket,
+                  "ERROR Source must be a file (use MOVEFOLDER for "
+                  "directories)");
+    return;
+  }
+
+  // Validate destination is a file path
+  if (!is_file_path(destination)) {
+    send_response(client_socket, "ERROR Destination must be a file path");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct paths
+  snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
+  snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
+           destination);
+
+  // Check source exists AND is a file
+  if (validate_path_type(src_path, 1) != 0) {
+    send_response(client_socket,
+                  "ERROR Source file not found or is not a file");
+    return;
+  }
+
+  // Perform move (reuse existing logic)
   if (move_path(src_path, dst_path) != 0) {
-    send_response(client_socket, "ERROR Move failed");
+    send_response(client_socket, "ERROR Move file failed");
     return;
   }
 
-  send_response(client_socket, RESP_OK_MOVE);
+  send_response(client_socket, RESP_OK_MOVEFILE);
+}
+
+void handle_movefolder(int client_socket, const char *group_name,
+                       const char *source, const char *destination) {
+  char src_path[512], dst_path[512];
+
+  // Security checks
+  if (strstr(source, "..") || strstr(destination, "..") ||
+      strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Validate source is a folder path
+  if (!is_folder_path(source)) {
+    send_response(client_socket,
+                  "ERROR Source must be a folder (use MOVEFILE for files)");
+    return;
+  }
+
+  // Validate destination is a folder path
+  if (!is_folder_path(destination)) {
+    send_response(client_socket, "ERROR Destination must be a folder path");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!user_is_group_member(username, group_name)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct paths
+  snprintf(src_path, sizeof(src_path), "storage/%s/%s", group_name, source);
+  snprintf(dst_path, sizeof(dst_path), "storage/%s/%s", group_name,
+           destination);
+
+  // Check source exists AND is a directory
+  if (validate_path_type(src_path, 0) != 0) {
+    send_response(client_socket,
+                  "ERROR Source folder not found or is not a folder");
+    return;
+  }
+
+  // Perform move (reuse existing logic)
+  if (move_path(src_path, dst_path) != 0) {
+    send_response(client_socket, "ERROR Move folder failed");
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_MOVEFOLDER);
 }

@@ -31,4 +31,26 @@ int move_path(const char *src_path, const char *dst_path);
  */
 int check_parent_directory_exists(const char *dst_path);
 
+/**
+ * Check if path has file extension (contains '.')
+ * @param path Path to check
+ * @return 1 if has extension, 0 otherwise
+ */
+int is_file_path(const char *path);
+
+/**
+ * Check if path is a directory (no extension)
+ * @param path Path to check
+ * @return 1 if is directory path, 0 otherwise
+ */
+int is_folder_path(const char *path);
+
+/**
+ * Validate actual filesystem type matches expectation
+ * @param full_path Full path to check
+ * @param expect_file 1 to expect file, 0 to expect directory
+ * @return 0 if matches, -1 if doesn't match or doesn't exist
+ */
+int validate_path_type(const char *full_path, int expect_file);
+
 #endif // DIRECTORY_OPS_H

@@ -119,13 +119,25 @@ static void process_request(void *arg) {
     handle_mkdir(client_socket, cmd.payload.mkdir.group,
                  cmd.payload.mkdir.path);
     break;
-  case CMD_COPY:
-    handle_copy(client_socket, cmd.payload.copy.group, cmd.payload.copy.source,
-                cmd.payload.copy.destination);
+  case CMD_COPYFILE:
+    handle_copyfile(client_socket, cmd.payload.copyfile.group,
+                    cmd.payload.copyfile.source,
+                    cmd.payload.copyfile.destination);
     break;
-  case CMD_MOVE:
-    handle_move(client_socket, cmd.payload.move.group, cmd.payload.move.source,
-                cmd.payload.move.destination);
+  case CMD_COPYFOLDER:
+    handle_copyfolder(client_socket, cmd.payload.copyfolder.group,
+                      cmd.payload.copyfolder.source,
+                      cmd.payload.copyfolder.destination);
+    break;
+  case CMD_MOVEFILE:
+    handle_movefile(client_socket, cmd.payload.movefile.group,
+                    cmd.payload.movefile.source,
+                    cmd.payload.movefile.destination);
+    break;
+  case CMD_MOVEFOLDER:
+    handle_movefolder(client_socket, cmd.payload.movefolder.group,
+                      cmd.payload.movefolder.source,
+                      cmd.payload.movefolder.destination);
     break;
   default:
     send_response(client_socket, RESP_ERR_UNKNOWN_CMD);

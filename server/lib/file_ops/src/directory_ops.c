@@ -1,4 +1,5 @@
 #include "../include/directory_ops.h"
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,4 +81,42 @@ int check_parent_directory_exists(const char *dst_path) {
   }
 
   return 0;
+}
+
+int is_file_path(const char *path) {
+  // Extract basename (filename)
+  char path_copy[512];
+  strncpy(path_copy, path, sizeof(path_copy) - 1);
+  path_copy[sizeof(path_copy) - 1] = '\0';
+
+  char *base = basename(path_copy);
+
+  // Check if contains '.' (extension)
+  char *dot = strrchr(base, '.');
+
+  // Must have extension and it's not just a dot at start (.hidden)
+  return (dot != NULL && dot != base && *(dot + 1) != '\0');
+}
+
+int is_folder_path(const char *path) { return !is_file_path(path); }
+
+int validate_path_type(const char *full_path, int expect_file) {
+  struct stat st;
+
+  if (stat(full_path, &st) != 0) {
+    return -1; // Path doesn't exist
+  }
+
+  int is_file = S_ISREG(st.st_mode);
+  int is_dir = S_ISDIR(st.st_mode);
+
+  if (expect_file && !is_file) {
+    return -1; // Expected file, got directory
+  }
+
+  if (!expect_file && !is_dir) {
+    return -1; // Expected directory, got file
+  }
+
+  return 0; // Matches expectation
 }

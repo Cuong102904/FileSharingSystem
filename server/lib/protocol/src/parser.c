@@ -41,16 +41,26 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     sscanf(buffer, "%*s %s %s", cmd->payload.mkdir.group,
            cmd->payload.mkdir.path);
     return CMD_MKDIR;
-  } else if (strcmp(command, "COPY") == 0) {
-    cmd->type = CMD_COPY;
-    sscanf(buffer, "%*s %s %s %s", cmd->payload.copy.group,
-           cmd->payload.copy.source, cmd->payload.copy.destination);
-    return CMD_COPY;
-  } else if (strcmp(command, "MOVE") == 0) {
-    cmd->type = CMD_MOVE;
-    sscanf(buffer, "%*s %s %s %s", cmd->payload.move.group,
-           cmd->payload.move.source, cmd->payload.move.destination);
-    return CMD_MOVE;
+  } else if (strcmp(command, "COPYFILE") == 0) {
+    cmd->type = CMD_COPYFILE;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.copyfile.group,
+           cmd->payload.copyfile.source, cmd->payload.copyfile.destination);
+    return CMD_COPYFILE;
+  } else if (strcmp(command, "COPYFOLDER") == 0) {
+    cmd->type = CMD_COPYFOLDER;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.copyfolder.group,
+           cmd->payload.copyfolder.source, cmd->payload.copyfolder.destination);
+    return CMD_COPYFOLDER;
+  } else if (strcmp(command, "MOVEFILE") == 0) {
+    cmd->type = CMD_MOVEFILE;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.movefile.group,
+           cmd->payload.movefile.source, cmd->payload.movefile.destination);
+    return CMD_MOVEFILE;
+  } else if (strcmp(command, "MOVEFOLDER") == 0) {
+    cmd->type = CMD_MOVEFOLDER;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.movefolder.group,
+           cmd->payload.movefolder.source, cmd->payload.movefolder.destination);
+    return CMD_MOVEFOLDER;
   } else if (strcmp(command, "CREATE_GROUP") == 0) {
     cmd->type = CMD_CREATE_GROUP;
     sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name,

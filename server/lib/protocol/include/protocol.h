@@ -11,10 +11,12 @@ typedef enum {
   CMD_CREATE_GROUP,
   CMD_LIST_GROUPS,
   CMD_UPLOAD,
-  CMD_DOWNLOAD, // New download command
-  CMD_MKDIR,    // Create directory
-  CMD_COPY,     // Copy file/directory
-  CMD_MOVE,     // Move file/directory
+  CMD_DOWNLOAD,
+  CMD_MKDIR,
+  CMD_COPYFILE,
+  CMD_COPYFOLDER,
+  CMD_MOVEFILE,
+  CMD_MOVEFOLDER,
   CMD_UNKNOWN
 } CommandType;
 
@@ -46,12 +48,22 @@ typedef struct {
       char group[256];
       char source[256];
       char destination[256];
-    } copy; // COPY
+    } copyfile; // COPYFILE
     struct {
       char group[256];
       char source[256];
       char destination[256];
-    } move; // MOVE
+    } copyfolder; // COPYFOLDER
+    struct {
+      char group[256];
+      char source[256];
+      char destination[256];
+    } movefile; // MOVEFILE
+    struct {
+      char group[256];
+      char source[256];
+      char destination[256];
+    } movefolder; // MOVEFOLDER
     struct {
       char group_name[256];
       char user_name[256];
@@ -67,8 +79,10 @@ typedef struct {
 #define RESP_OK_UPLOAD_COMPLETE "OK UPLOAD_COMPLETE"
 #define RESP_OK_DOWNLOAD "OK DOWNLOAD" // New response
 #define RESP_OK_MKDIR "OK MKDIR"
-#define RESP_OK_COPY "OK COPY"
-#define RESP_OK_MOVE "OK MOVE"
+#define RESP_OK_COPYFILE "OK COPYFILE"
+#define RESP_OK_COPYFOLDER "OK COPYFOLDER"
+#define RESP_OK_MOVEFILE "OK MOVEFILE"
+#define RESP_OK_MOVEFOLDER "OK MOVEFOLDER"
 #define RESP_OK_CREATE_GROUP "OK CREATE_GROUP"
 #define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
 #define RESP_OK_LIST_GROUP "OK LIST_GROUP"
@@ -102,10 +116,14 @@ void handle_upload(int client_socket, const char *group_name,
 void handle_download(int client_socket, const char *group_name,
                      const char *server_path);
 void handle_mkdir(int client_socket, const char *group_name, const char *path);
-void handle_copy(int client_socket, const char *group_name, const char *source,
-                 const char *destination);
-void handle_move(int client_socket, const char *group_name, const char *source,
-                 const char *destination);
+void handle_copyfile(int client_socket, const char *group_name,
+                     const char *source, const char *destination);
+void handle_copyfolder(int client_socket, const char *group_name,
+                       const char *source, const char *destination);
+void handle_movefile(int client_socket, const char *group_name,
+                     const char *source, const char *destination);
+void handle_movefolder(int client_socket, const char *group_name,
+                       const char *source, const char *destination);
 
 // Send response to client
 void send_response(int client_socket, const char *response);
