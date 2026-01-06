@@ -31,10 +31,11 @@ const char menu[] =
     "13. LEAVE_GROUP <group_name>\n"
     "14. DOWNLOAD <group_name> <path_on_server> <local_save_path>\n"
     "15. MKDIR <group_name> <path>\n"
-    "16. COPYFILE <group_name> <source_file> <dest_file>\n"
-    "17. COPYFOLDER <group_name> <source_folder> <dest_folder>\n"
-    "18. MOVEFILE <group_name> <source_file> <dest_folder>/\n"
-    "19. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n"
+    "16. LS <group_name> <path>\n"
+    "17. COPYFILE <group_name> <source_file> <dest_file>\n"
+    "18. COPYFOLDER <group_name> <source_folder> <dest_folder>\n"
+    "19. MOVEFILE <group_name> <source_file> <dest_folder>/\n"
+    "20. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n"
     "*. QUIT (to exit)\n"
     "==================================\n\n";
 
@@ -124,6 +125,17 @@ int main() {
       send(client_socket, buffer, strlen(buffer), 0);
       int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
       if (n > 0) {
+        buffer[n] = '\0';
+        printf("Server response: %s\n", buffer);
+      }
+      continue;
+    }
+
+    // List content in a folder
+    if (strncmp(buffer, "LS", 2) == 0) {
+      send(client_socket, buffer, strlen(buffer), 0);
+      int n = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+      if(n > 0){
         buffer[n] = '\0';
         printf("Server response: %s\n", buffer);
       }

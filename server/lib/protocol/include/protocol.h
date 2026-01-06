@@ -20,6 +20,7 @@ typedef enum {
   CMD_KICK_MEMBER,
   CMD_DOWNLOAD,
   CMD_MKDIR,
+  CMD_LS,
   CMD_COPYFILE,
   CMD_COPYFOLDER,
   CMD_MOVEFILE,
@@ -72,6 +73,10 @@ typedef struct {
       char destination[256];
     } movefolder; // MOVEFOLDER
     struct {
+      char group[256];
+      char path[256];
+    } viewfolder; // VIEWFOLDER
+    struct {
       char group_name[256];
       char user_name[256];
       char status[16]; // for ACCEPT_INVITE/REJECT_INVITE: accept/reject
@@ -87,6 +92,8 @@ typedef struct {
 #define RESP_OK_UPLOAD_COMPLETE "OK UPLOAD_COMPLETE"
 #define RESP_OK_DOWNLOAD "OK DOWNLOAD" // New response
 #define RESP_OK_MKDIR "OK MKDIR"
+#define RESP_OK_LS "OK LS"
+#define RESP_ERR_FOLDER_NOT_FOUND "ERROR cannot find folder"
 #define RESP_OK_COPYFILE "OK COPYFILE"
 #define RESP_OK_COPYFOLDER "OK COPYFOLDER"
 #define RESP_OK_MOVEFILE "OK MOVEFILE"
@@ -148,6 +155,7 @@ void handle_upload(int client_socket, const char *group_name,
 void handle_download(int client_socket, const char *group_name,
                      const char *server_path);
 void handle_mkdir(int client_socket, const char *group_name, const char *path);
+void handle_ls(int client_socket, const char *group_name, const char* path);
 void handle_copyfile(int client_socket, const char *group_name,
                      const char *source, const char *destination);
 void handle_copyfolder(int client_socket, const char *group_name,

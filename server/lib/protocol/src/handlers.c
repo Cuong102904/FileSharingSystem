@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 void send_response(int client_socket, const char *response) {
   send(client_socket, response, strlen(response), 0);
@@ -643,6 +644,59 @@ void handle_mkdir(int client_socket, const char *group_name, const char *path) {
   }
 
   send_response(client_socket, RESP_OK_MKDIR);
+}
+
+void handle_ls(int client_socket, const char *group_name, const char* path){
+  char full_path[512];
+
+  // Security: directory traversal check
+  if (strstr(path, "..") || strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, "ERROR Not logged in");
+    return;
+  }
+
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct full path
+  snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name, path);
+
+  // Open the directory
+  DIR *dir = opendir(full_path);
+  if(dir == NULL){
+    perror("Failed to open directory");
+    send_response(client_socket, RESP_ERR_FOLDER_NOT_FOUND);
+    return;
+  }
+
+  // List the contents of the directory
+  struct dirent *entry;
+  char response[4096] = "";
+  strcat(response, "folder's content: \n");
+  while((entry = readdir(dir)) != NULL) {
+    // Skip "." and ".."
+    if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+
+    // Append the entry name to the response
+    strcat(response, entry->d_name);
+    strcat(response, "\n");
+  }
+  closedir(dir);
+
+  // Send the response back to the client
+  send(client_socket, response, strlen(response), 0);
+  send_response(client_socket, RESP_OK_LS);
 }
 
 void handle_copyfile(int client_socket, const char *group_name,

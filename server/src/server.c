@@ -133,36 +133,40 @@ static void process_request(void *arg) {
         handle_kick_member(client_socket, cmd.payload.group.group_name, cmd.payload.group.user_name);
         break;
     case CMD_DOWNLOAD:
-      handle_download(client_socket, cmd.payload.download.group,
-                      cmd.payload.download.path);
-      break;
+        handle_download(client_socket, cmd.payload.download.group,
+                        cmd.payload.download.path);
+        break;
     case CMD_MKDIR:
-      handle_mkdir(client_socket, cmd.payload.mkdir.group,
-                    cmd.payload.mkdir.path);
-      break;
+        handle_mkdir(client_socket, cmd.payload.mkdir.group,
+                      cmd.payload.mkdir.path);
+        break;
+    case CMD_LS:
+        handle_ls(client_socket, cmd.payload.viewfolder.group,
+                      cmd.payload.viewfolder.path);
+        break;
     case CMD_COPYFILE:
-      handle_copyfile(client_socket, cmd.payload.copyfile.group,
-                      cmd.payload.copyfile.source,
-                      cmd.payload.copyfile.destination);
-      break;
+        handle_copyfile(client_socket, cmd.payload.copyfile.group,
+                        cmd.payload.copyfile.source,
+                        cmd.payload.copyfile.destination);
+        break;
     case CMD_COPYFOLDER:
-      handle_copyfolder(client_socket, cmd.payload.copyfolder.group,
-                        cmd.payload.copyfolder.source,
-                        cmd.payload.copyfolder.destination);
-      break;
+        handle_copyfolder(client_socket, cmd.payload.copyfolder.group,
+                          cmd.payload.copyfolder.source,
+                          cmd.payload.copyfolder.destination);
+        break;
     case CMD_MOVEFILE:
-      handle_movefile(client_socket, cmd.payload.movefile.group,
-                      cmd.payload.movefile.source,
-                      cmd.payload.movefile.destination);
-      break;
+        handle_movefile(client_socket, cmd.payload.movefile.group,
+                        cmd.payload.movefile.source,
+                        cmd.payload.movefile.destination);
+        break;
     case CMD_MOVEFOLDER:
-      handle_movefolder(client_socket, cmd.payload.movefolder.group,
-                        cmd.payload.movefolder.source,
-                        cmd.payload.movefolder.destination);
-      break;
+        handle_movefolder(client_socket, cmd.payload.movefolder.group,
+                          cmd.payload.movefolder.source,
+                          cmd.payload.movefolder.destination);
+        break;
     default:
-      send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
-      break;
+        send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
+        break;
     }
 
   free(task);
