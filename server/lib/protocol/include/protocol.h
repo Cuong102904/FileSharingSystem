@@ -15,7 +15,9 @@ typedef enum {
   CMD_APPROVE_JOIN,
   CMD_INVITE_USER,
   CMD_ACCEPT_INVITE,
+  CMD_REJECT_INVITE,
   CMD_UPLOAD,
+  CMD_LEAVE_GROUP,
   CMD_UNKNOWN
 } CommandType;
 
@@ -41,8 +43,8 @@ typedef struct {
     struct {
       char group_name[256];
       char user_name[256];
-      char status[16]; // for ACCEPT_INVITE: accept/reject
-    } group; // CREATE_GROUP, LIST_GROUPS, ACCEPT_INVITE
+      char status[16]; // for ACCEPT_INVITE/REJECT_INVITE: accept/reject
+    } group; // CREATE_GROUP, LIST_GROUPS, ACCEPT_INVITE, REJECT_INVITE, LEAVE_GROUP
   } payload;
 } ParsedCommand;
 
@@ -81,6 +83,7 @@ typedef struct {
 #define RESP_ERR_ACCESS_DENIED "ERROR Access denied"
 #define RESP_ERR_ALREADY_LOGGED_IN "ERROR Already logged in"
 #define RESP_ERR_NOT_LOGGED_IN "ERROR Not logged in"
+#define RESP_OK_LEAVE_GROUP "OK LEAVE_GROUP"
 
 // Parser functions
 CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd);
@@ -97,6 +100,8 @@ void handle_join_request(int client_socket, const char *group_name);
 void handle_approve_join(int client_socket, const char *group_name, const char *target_user);
 void handle_invite_user(int client_socket, const char *group_name, const char *target_user);
 void handle_accept_invite(int client_socket, const char *group_name, const char *status);
+void handle_reject_invite(int client_socket, const char *group_name, const char *status);
+void handle_leave_group(int client_socket, const char *group_name);
 void handle_logout(int client_socket);
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path);

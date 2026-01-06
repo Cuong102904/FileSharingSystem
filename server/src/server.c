@@ -126,6 +126,9 @@ static void process_request(void *arg) {
     case CMD_ACCEPT_INVITE:
         handle_accept_invite(client_socket, cmd.payload.group.group_name, cmd.payload.group.status);
         break;
+    case CMD_LEAVE_GROUP:
+        handle_leave_group(client_socket, cmd.payload.group.group_name);
+        break;
     default:
         send_response(client_socket, RESP_ERR_UNKNOWN_CMD);
         break;
