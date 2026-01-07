@@ -34,10 +34,12 @@ static void server_init(void) {
   auth_init();
   session_init();
   client_session_init();
+  init_group_rwlock();
   printf("Server modules initialized.\n");
 }
 
 static void server_cleanup(void) {
+  destroy_group_rwlock();
   client_session_cleanup();
   auth_cleanup();
   session_cleanup();

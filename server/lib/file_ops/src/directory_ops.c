@@ -1,9 +1,11 @@
 #include "../include/directory_ops.h"
+#include <errno.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 int create_directory_recursive(const char *full_path) {
@@ -22,6 +24,12 @@ int create_directory_recursive(const char *full_path) {
 
     if (stat(temp_path, &st) == -1) {
       if (mkdir(temp_path, 0755) != 0) {
+        // Handle concurrent creation gracefully
+        if (errno == EEXIST) {
+          // Another thread created this directory, not an error
+          token = strtok_r(NULL, "/", &saveptr);
+          continue;
+        }
         perror("Directory creation error");
         return -1;
       }
@@ -36,7 +44,13 @@ int copy_path(const char *src_path, const char *dst_path) {
   char cmd[2048];
   snprintf(cmd, sizeof(cmd), "cp -r \"%s\" \"%s\"", src_path, dst_path);
 
-  if (system(cmd) != 0) {
+  int result = system(cmd);
+  if (result != 0) {
+    // system() returns exit status of shell command
+    // cp command handles concurrent access - may fail if source doesn't exist
+    // or destination is not writable
+    fprintf(stderr, "Copy failed: %s -> %s (exit code: %d)\n", 
+            src_path, dst_path, WEXITSTATUS(result));
     return -1;
   }
 
@@ -44,17 +58,30 @@ int copy_path(const char *src_path, const char *dst_path) {
 }
 
 int move_path(const char *src_path, const char *dst_path) {
-  // Try atomic rename first
+  // Try atomic rename first (works if same filesystem)
   if (rename(src_path, dst_path) == 0) {
     return 0;
   }
 
-  // If rename fails (cross-filesystem), do copy + delete
+  // Handle rename failure - check if it's due to cross-filesystem
+  if (errno != EXDEV) {
+    // Real error (not cross-filesystem), could be:
+    // - ENOENT: source doesn't exist
+    // - EEXIST: destination exists (depends on OS)
+    // - EACCES: permission denied
+    perror("Move (rename) failed");
+    return -1;
+  }
+
+  // errno == EXDEV: Cross-filesystem move, use copy + delete
   char cmd[2048];
   snprintf(cmd, sizeof(cmd), "cp -r \"%s\" \"%s\" && rm -rf \"%s\"", src_path,
            dst_path, src_path);
 
-  if (system(cmd) != 0) {
+  int result = system(cmd);
+  if (result != 0) {
+    fprintf(stderr, "Move (copy+delete) failed: %s -> %s (exit code: %d)\n",
+            src_path, dst_path, WEXITSTATUS(result));
     return -1;
   }
 

@@ -10,10 +10,16 @@
 #define CHUNK_SIZE 4096
 
 long receive_file(int client_socket, const char *save_path, long filesize) {
-  // Open file for writing
-  FILE *file = fopen(save_path, "wb");
+  // Open file for writing (exclusive create - fail if file exists)
+  // This prevents concurrent uploads to the same file from corrupting data
+  FILE *file = fopen(save_path, "wbx");
   if (!file) {
-    perror("File open error");
+    if (errno == EEXIST) {
+      // Another upload to this file is already in progress
+      perror("File upload in progress or file already exists");
+    } else {
+      perror("File open error");
+    }
     return -1;
   }
 
