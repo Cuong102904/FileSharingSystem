@@ -4,6 +4,9 @@
 #include <string.h>
 
 int group_create(const char *group_name, const char *user_name) {
+  if(find_group_by_name(group_name) == 1){
+    return GROUP_REPO_ERR_EXISTS;
+  }
   pthread_rwlock_wrlock(&group_db_rwlock);
 
   FILE *file = fopen(GROUP_DB, "a");
@@ -12,11 +15,7 @@ int group_create(const char *group_name, const char *user_name) {
     pthread_rwlock_unlock(&group_db_rwlock);
     return -1;
   }
-  if (find_group_by_name(group_name) == 1) {
-    fclose(file);
-    pthread_rwlock_unlock(&group_db_rwlock);
-    return GROUP_REPO_ERR_EXISTS;
-  }
+  
   // Format: group_name member_name role
   // Creator is owner
   fprintf(file, "%s %s %s\n", group_name, user_name,
