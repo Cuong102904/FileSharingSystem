@@ -56,7 +56,7 @@ int main() {
   server_addr.sin_port = htons(PORT);
 
   // Change IP address
-  if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0) {
+  if (inet_pton(AF_INET, "192.168.226.225", &server_addr.sin_addr) <= 0) {
     perror("Invalid address");
     close(client_socket);
     exit(EXIT_FAILURE);
@@ -77,6 +77,12 @@ int main() {
 
     // Remove newline
     buffer[strcspn(buffer, "\n")] = 0;
+
+    // Validate input
+    if (strlen(buffer) == 0) {
+      printf("Input cannot be empty. Please try again.\n");
+      continue;
+    }
 
     // Check QUIT command
     if (strcmp(buffer, "QUIT") == 0 || strcmp(buffer, "quit") == 0) {
