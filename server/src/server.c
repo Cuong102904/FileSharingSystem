@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
 
 #ifdef __APPLE__
 #include <sys/event.h>
@@ -49,6 +50,7 @@ static void server_cleanup(void) {
 // Task argument structure
 typedef struct {
   int client_socket;
+  int epfd;           // Added to access epoll instance in worker
   char buffer[BUFFER_SIZE];
   int buffer_len;
 } ClientTask;
@@ -78,6 +80,13 @@ static void process_request(void *arg) {
   // Commands that require NOT being logged in (REGISTER, LOGIN)
   if ((cmd_type == CMD_REGISTER || cmd_type == CMD_LOGIN) && is_logged_in) {
     send_response(client_socket, RESP_ERR_ALREADY_LOGGED_IN);
+    
+    // Re-arm socket with EPOLLONESHOT
+    struct epoll_event ev;
+    ev.events = EPOLLIN | EPOLLONESHOT;
+    ev.data.fd = client_socket;
+    epoll_ctl(task->epfd, EPOLL_CTL_MOD, client_socket, &ev);
+
     free(task);
     return;
   }
@@ -86,6 +95,13 @@ static void process_request(void *arg) {
   if (cmd_type != CMD_REGISTER && cmd_type != CMD_LOGIN &&
       cmd_type != CMD_UNKNOWN && !is_logged_in) {
     send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    
+    // Re-arm socket with EPOLLONESHOT
+    struct epoll_event ev;
+    ev.events = EPOLLIN | EPOLLONESHOT;
+    ev.data.fd = client_socket;
+    epoll_ctl(task->epfd, EPOLL_CTL_MOD, client_socket, &ev);
+
     free(task);
     return;
   }
@@ -171,117 +187,15 @@ static void process_request(void *arg) {
         break;
     }
 
+  // Re-arm socket with EPOLLONESHOT
+  struct epoll_event ev;
+  ev.events = EPOLLIN | EPOLLONESHOT;
+  ev.data.fd = client_socket;
+  epoll_ctl(task->epfd, EPOLL_CTL_MOD, client_socket, &ev);
+
   free(task);
 }
 
-#ifdef __APPLE__
-// macOS uses kqueue
-static int run_event_loop(int server_socket) {
-  int kq = kqueue();
-  if (kq == -1) {
-    perror("kqueue creation failed");
-    return -1;
-  }
-
-  // Register server socket for read events
-  struct kevent change;
-  EV_SET(&change, server_socket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-  if (kevent(kq, &change, 1, NULL, 0, NULL) == -1) {
-    perror("kevent register failed");
-    close(kq);
-    return -1;
-  }
-
-  struct kevent events[MAX_EVENTS];
-  printf("Event loop started (kqueue)\n");
-
-  while (1) {
-    int nev = kevent(kq, NULL, 0, events, MAX_EVENTS, NULL);
-    if (nev == -1) {
-      if (errno == EINTR) {
-        continue;
-      }
-      perror("kevent wait failed");
-      break;
-    }
-
-    for (int i = 0; i < nev; i++) {
-      int fd = (int)events[i].ident;
-
-      if (events[i].flags & EV_EOF) {
-        // Client disconnected - cleanup session
-        client_session_logout(fd);
-        printf("Client disconnected: socket %d\n", fd);
-        close(fd);
-        continue;
-      }
-
-      if (fd == server_socket) {
-        // New connection
-        struct sockaddr_in client_addr;
-        socklen_t client_len = sizeof(client_addr);
-        int client_socket =
-            accept(server_socket, (struct sockaddr *)&client_addr, &client_len);
-
-        if (client_socket == -1) {
-          if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            perror("Accept failed");
-          }
-          continue;
-        }
-
-        set_nonblocking(client_socket);
-
-        // Register client socket for read events
-        EV_SET(&change, client_socket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0,
-               NULL);
-        if (kevent(kq, &change, 1, NULL, 0, NULL) == -1) {
-          perror("kevent register client failed");
-          close(client_socket);
-          continue;
-        }
-
-        printf("Client connected: socket %d\n", client_socket);
-      } else {
-        // Data from client
-        char buffer[BUFFER_SIZE];
-        ssize_t bytes_read = recv(fd, buffer, BUFFER_SIZE - 1, 0);
-
-        if (bytes_read <= 0) {
-          if (bytes_read == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
-            client_session_logout(fd);
-            printf("Client disconnected: socket %d\n", fd);
-            close(fd);
-          }
-          continue;
-        }
-
-        buffer[bytes_read] = '\0';
-
-        // Create task and add to thread pool
-        ClientTask *task = malloc(sizeof(ClientTask));
-        if (task == NULL) {
-          send_response(fd, "ERROR Server out of memory");
-          continue;
-        }
-
-        task->client_socket = fd;
-        memcpy(task->buffer, buffer, bytes_read + 1);
-        task->buffer_len = bytes_read;
-
-        if (thread_pool_add_task(g_thread_pool, process_request, task) != 0) {
-          send_response(fd, "ERROR Server busy");
-          free(task);
-        }
-      }
-    }
-  }
-
-  close(kq);
-  return 0;
-}
-
-#else
 // Linux uses epoll
 static int run_event_loop(int server_socket) {
   int epfd = epoll_create1(0);
@@ -338,7 +252,7 @@ static int run_event_loop(int server_socket) {
 
         set_nonblocking(client_socket);
 
-        ev.events = EPOLLIN | EPOLLET;
+        ev.events = EPOLLIN | EPOLLONESHOT; // Changed from EPOLLET to EPOLLONESHOT
         ev.data.fd = client_socket;
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_socket, &ev) == -1) {
           perror("epoll_ctl add client failed");
@@ -372,6 +286,7 @@ static int run_event_loop(int server_socket) {
         }
 
         task->client_socket = fd;
+        task->epfd = epfd;    // Pass epfd to task
         memcpy(task->buffer, buffer, bytes_read + 1);
         task->buffer_len = bytes_read;
 
@@ -394,6 +309,9 @@ int main() {
 
   // Initialize all modules
   server_init();
+
+  // Ignore SIGPIPE to prevent server crash on client disconnect
+  signal(SIGPIPE, SIG_IGN);
 
   // Create thread pool
   g_thread_pool = thread_pool_create(THREAD_POOL_SIZE);

@@ -98,6 +98,9 @@ void handle_create_group(int client_socket, const char *group_name) {
 
   if (result == GROUP_REPO_OK) {
     strcpy(response, RESP_OK_CREATE_GROUP);
+    char full_path[512];
+    snprintf(full_path, sizeof(full_path), "storage/%s", group_name);
+    create_directory_recursive(full_path);
   } else {
     strcpy(response, RESP_ERR_GROUPNAME_EXISTS);
   }
@@ -460,6 +463,14 @@ void handle_upload(int client_socket, const char *group_name,
     filename = client_path_copy;
   }
 
+  // Validate total path length BEFORE constructing
+  size_t total_path_len = strlen("storage/") + strlen(group_name) + 1 +
+                         strlen(server_path) + 1 + strlen(filename) + 1;
+  if (total_path_len >= sizeof(full_path)) {
+    send_response(client_socket, "ERROR Path too long (max 512 chars)");
+    return;
+  }
+
   snprintf(full_path, sizeof(full_path), "storage/%s/%s/%s", group_name,
            server_path, filename);
 
@@ -470,10 +481,22 @@ void handle_upload(int client_socket, const char *group_name,
   if (last_slash) {
     *last_slash = '\0';
     char temp_path[512] = "";
+    size_t temp_path_len = 0;
     char *token = strtok(dir_path, "/");
+    
     while (token != NULL) {
-      strcat(temp_path, token);
-      strcat(temp_path, "/");
+      // Check if adding this token would overflow buffer
+      size_t token_len = strlen(token);
+      if (temp_path_len + token_len + 2 >= sizeof(temp_path)) {
+        send_response(client_socket, "ERROR Path too long");
+        return;
+      }
+      
+      // Safely append token and slash
+      strncat(temp_path, token, sizeof(temp_path) - temp_path_len - 1);
+      temp_path_len += token_len;
+      strncat(temp_path, "/", sizeof(temp_path) - temp_path_len - 1);
+      temp_path_len += 1;
 
       struct stat st = {0};
       if (stat(temp_path, &st) == -1) {
@@ -509,6 +532,12 @@ void handle_upload(int client_socket, const char *group_name,
   long filesize = 0;
   int n = recv(client_socket, &filesize, sizeof(filesize), 0);
   if (n <= 0) {
+    if (n == 0) {
+        printf("Client disconnected while sending file size\n");
+    } else {
+        perror("recv filesize failed");
+        send_response(client_socket, "ERROR Failed to receive file size");
+    }
     // Restore non-blocking mode before returning
     fcntl(client_socket, F_SETFL, flags);
     return;
@@ -681,7 +710,8 @@ void handle_ls(int client_socket, const char *group_name, const char* path){
   // List the contents of the directory
   struct dirent *entry;
   char response[4096] = "";
-  strcat(response, "folder's content: \n");
+  strcat(response, RESP_OK_LS);
+  strcat(response, "\n"); 
   while((entry = readdir(dir)) != NULL) {
     // Skip "." and ".."
     if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
@@ -695,8 +725,8 @@ void handle_ls(int client_socket, const char *group_name, const char* path){
   closedir(dir);
 
   // Send the response back to the client
-  send(client_socket, response, strlen(response), 0);
-  send_response(client_socket, RESP_OK_LS);
+    send(client_socket, response, strlen(response), 0);
+  // send_response(client_socket, response);
 }
 
 void handle_copyfile(int client_socket, const char *group_name,
