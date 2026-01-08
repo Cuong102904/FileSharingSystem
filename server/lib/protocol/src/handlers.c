@@ -97,15 +97,12 @@ void handle_create_group(int client_socket, const char *group_name) {
   int result = group_create(group_name, username);
 
   if (result == GROUP_REPO_OK) {
-    char full_path[256];
+    char full_path[512];
     // Construct full path
     snprintf(full_path, sizeof(full_path), "storage/%s", group_name);
     create_directory_recursive(full_path);
 
     strcpy(response, RESP_OK_CREATE_GROUP);
-    char full_path[512];
-    snprintf(full_path, sizeof(full_path), "storage/%s", group_name);
-    create_directory_recursive(full_path);
   } else {
     strcpy(response, RESP_ERR_GROUPNAME_EXISTS);
   }

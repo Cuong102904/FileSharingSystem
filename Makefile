@@ -20,6 +20,7 @@ SERVER_INCLUDES = \
 	-I $(SERVER_DIR)/lib/group/include \
 	-I $(SERVER_DIR)/lib/thread_pool/include \
 	-I $(SERVER_DIR)/lib/client_session/include \
+	-I $(SERVER_DIR)/lib/logger/include \
 	-I $(SERVER_DIR)/lib/utils
 
 CLIENT_INCLUDES = \
@@ -42,7 +43,8 @@ SERVER_SRCS = \
 	$(SERVER_DIR)/lib/group/src/group_read.c \
 	$(SERVER_DIR)/lib/group/src/group_write.c \
 	$(SERVER_DIR)/lib/group/src/group_repo.c \
-	$(SERVER_DIR)/lib/group/src/group.c
+	$(SERVER_DIR)/lib/group/src/group.c \
+	$(SERVER_DIR)/lib/logger/src/logger.c
 
 SERVER_TARGET = $(BIN_DIR)/server
 

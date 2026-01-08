@@ -19,6 +19,7 @@
 #include "../lib/client_session/include/client_session.h"
 #include "../lib/group/include/group.h"
 #include "../lib/group/include/group_repo.h"
+#include "../lib/logger/include/logger.h"
 #include "../lib/protocol/include/protocol.h"
 #include "../lib/session/include/session.h"
 #include "../lib/thread_pool/include/thread_pool.h"
@@ -36,6 +37,7 @@ static void server_init(void) {
   session_init();
   client_session_init();
   init_group_rwlock();
+  logger_init("logs.txt");
   printf("Server modules initialized.\n");
 }
 
@@ -44,6 +46,7 @@ static void server_cleanup(void) {
   client_session_cleanup();
   auth_cleanup();
   session_cleanup();
+  logger_cleanup();
   printf("Server modules cleaned up.\n");
 }
 
@@ -64,6 +67,48 @@ static int set_nonblocking(int fd) {
   return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
+// Helper function to convert CommandType to string for logging
+static const char* command_type_to_string(CommandType cmd_type) {
+  switch (cmd_type) {
+    case CMD_REGISTER: return "REGISTER";
+    case CMD_LOGIN: return "LOGIN";
+    case CMD_LOGOUT: return "LOGOUT";
+    case CMD_CREATE_GROUP: return "CREATE_GROUP";
+    case CMD_LIST_GROUPS: return "LIST_GROUPS";
+    case CMD_LIST_MEMBERS: return "LIST_MEMBERS";
+    case CMD_JOIN_REQ: return "JOIN_REQ";
+    case CMD_APPROVE_JOIN: return "APPROVE_JOIN";
+    case CMD_INVITE_USER: return "INVITE_USER";
+    case CMD_RESPOND_INVITE: return "RESPOND_INVITE";
+    case CMD_UPLOAD: return "UPLOAD";
+    case CMD_LEAVE_GROUP: return "LEAVE_GROUP";
+    case CMD_KICK_MEMBER: return "KICK_MEMBER";
+    case CMD_DOWNLOAD: return "DOWNLOAD";
+    case CMD_MKDIR: return "MKDIR";
+    case CMD_LS: return "LS";
+    case CMD_COPYFILE: return "COPYFILE";
+    case CMD_COPYFOLDER: return "COPYFOLDER";
+    case CMD_MOVEFILE: return "MOVEFILE";
+    case CMD_MOVEFOLDER: return "MOVEFOLDER";
+    case CMD_UNKNOWN: return "UNKNOWN";
+    default: return "UNKNOWN";
+  }
+}
+
+// Helper function to re-arm socket for both epoll and kqueue
+static void rearm_socket(int event_fd, int client_socket) {
+#ifdef __APPLE__
+  struct kevent ev_set;
+  EV_SET(&ev_set, client_socket, EVFILT_READ, EV_ADD | EV_ONESHOT, 0, 0, NULL);
+  kevent(event_fd, &ev_set, 1, NULL, 0, NULL);
+#else
+  struct epoll_event ev;
+  ev.events = EPOLLIN | EPOLLONESHOT;
+  ev.data.fd = client_socket;
+  epoll_ctl(event_fd, EPOLL_CTL_MOD, client_socket, &ev);
+#endif
+}
+
 // Process a single request (runs in thread pool)
 static void process_request(void *arg) {
   ClientTask *task = (ClientTask *)arg;
@@ -74,18 +119,25 @@ static void process_request(void *arg) {
   // Parse and handle command
   CommandType cmd_type = protocol_parse_command(buffer, &cmd);
 
+  // Log command execution
+  // For REGISTER/LOGIN commands, use username from parsed command
+  // For other commands, use username from session
+  const char *username = client_session_get_username(client_socket);
+  if ((cmd_type == CMD_REGISTER || cmd_type == CMD_LOGIN) && cmd.payload.auth.username[0] != '\0') {
+    username = cmd.payload.auth.username;
+  }
+  const char *cmd_string = command_type_to_string(cmd_type);
+  log_command(username, cmd_string);
+
   // Check login state
   int is_logged_in = client_session_is_logged_in(client_socket);
 
   // Commands that require NOT being logged in (REGISTER, LOGIN)
   if ((cmd_type == CMD_REGISTER || cmd_type == CMD_LOGIN) && is_logged_in) {
     send_response(client_socket, RESP_ERR_ALREADY_LOGGED_IN);
-    
-    // Re-arm socket with EPOLLONESHOT
-    struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLONESHOT;
-    ev.data.fd = client_socket;
-    epoll_ctl(task->epfd, EPOLL_CTL_MOD, client_socket, &ev);
+
+    // Re-arm socket
+    rearm_socket(task->epfd, client_socket);
 
     free(task);
     return;
@@ -95,12 +147,9 @@ static void process_request(void *arg) {
   if (cmd_type != CMD_REGISTER && cmd_type != CMD_LOGIN &&
       cmd_type != CMD_UNKNOWN && !is_logged_in) {
     send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
-    
-    // Re-arm socket with EPOLLONESHOT
-    struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLONESHOT;
-    ev.data.fd = client_socket;
-    epoll_ctl(task->epfd, EPOLL_CTL_MOD, client_socket, &ev);
+
+    // Re-arm socket
+    rearm_socket(task->epfd, client_socket);
 
     free(task);
     return;
@@ -187,15 +236,13 @@ static void process_request(void *arg) {
         break;
     }
 
-  // Re-arm socket with EPOLLONESHOT
-  struct epoll_event ev;
-  ev.events = EPOLLIN | EPOLLONESHOT;
-  ev.data.fd = client_socket;
-  epoll_ctl(task->epfd, EPOLL_CTL_MOD, client_socket, &ev);
+  // Re-arm socket
+  rearm_socket(task->epfd, client_socket);
 
   free(task);
 }
 
+#ifndef __APPLE__
 // Linux uses epoll
 static int run_event_loop(int server_socket) {
   int epfd = epoll_create1(0);
@@ -299,6 +346,110 @@ static int run_event_loop(int server_socket) {
   }
 
   close(epfd);
+  return 0;
+}
+#else
+// macOS uses kqueue
+static int run_event_loop(int server_socket) {
+  int kq = kqueue();
+  if (kq == -1) {
+    perror("kqueue failed");
+    return -1;
+  }
+
+  struct kevent ev_set;
+  EV_SET(&ev_set, server_socket, EVFILT_READ, EV_ADD, 0, 0, NULL);
+  if (kevent(kq, &ev_set, 1, NULL, 0, NULL) == -1) {
+    perror("kevent add server failed");
+    close(kq);
+    return -1;
+  }
+
+  struct kevent events[MAX_EVENTS];
+  printf("Event loop started (kqueue)\n");
+
+  while (1) {
+    int nev = kevent(kq, NULL, 0, events, MAX_EVENTS, NULL);
+    if (nev == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
+      perror("kevent failed");
+      break;
+    }
+
+    for (int i = 0; i < nev; i++) {
+      int fd = (int)events[i].ident;
+
+      if (events[i].flags & EV_EOF) {
+        client_session_logout(fd);
+        printf("Client disconnected: socket %d\n", fd);
+        close(fd);
+        continue;
+      }
+
+      if (fd == server_socket) {
+        // New connection
+        struct sockaddr_in client_addr;
+        socklen_t client_len = sizeof(client_addr);
+        int client_socket =
+            accept(server_socket, (struct sockaddr *)&client_addr, &client_len);
+
+        if (client_socket == -1) {
+          if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            perror("Accept failed");
+          }
+          continue;
+        }
+
+        set_nonblocking(client_socket);
+
+        // Add client socket to kqueue
+        EV_SET(&ev_set, client_socket, EVFILT_READ, EV_ADD | EV_ONESHOT, 0, 0, NULL);
+        if (kevent(kq, &ev_set, 1, NULL, 0, NULL) == -1) {
+          perror("kevent add client failed");
+          close(client_socket);
+          continue;
+        }
+
+        printf("Client connected: socket %d\n", client_socket);
+      } else {
+        // Data from client
+        char buffer[BUFFER_SIZE];
+        ssize_t bytes_read = recv(fd, buffer, BUFFER_SIZE - 1, 0);
+
+        if (bytes_read <= 0) {
+          if (bytes_read == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
+            client_session_logout(fd);
+            printf("Client disconnected: socket %d\n", fd);
+            close(fd);
+          }
+          continue;
+        }
+
+        buffer[bytes_read] = '\0';
+
+        // Create task and add to thread pool
+        ClientTask *task = malloc(sizeof(ClientTask));
+        if (task == NULL) {
+          send_response(fd, "ERROR Server out of memory");
+          continue;
+        }
+
+        task->client_socket = fd;
+        task->epfd = kq;    // Pass kqueue fd to task
+        memcpy(task->buffer, buffer, bytes_read + 1);
+        task->buffer_len = bytes_read;
+
+        if (thread_pool_add_task(g_thread_pool, process_request, task) != 0) {
+          send_response(fd, "ERROR Server busy");
+          free(task);
+        }
+      }
+    }
+  }
+
+  close(kq);
   return 0;
 }
 #endif
