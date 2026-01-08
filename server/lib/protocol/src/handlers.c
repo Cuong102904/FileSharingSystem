@@ -673,7 +673,13 @@ void handle_ls(int client_socket, const char *group_name, const char* path){
   }
 
   // Construct full path
-  snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name, path);
+  if (strlen(path) == 0) {
+    // If path is empty, point to the root folder of the group
+    snprintf(full_path, sizeof(full_path), "storage/%s/", group_name);
+  } else {
+      // Otherwise, construct the full path normally
+      snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name, path);
+  }
 
   // Open the directory
   DIR *dir = opendir(full_path);
@@ -686,18 +692,21 @@ void handle_ls(int client_socket, const char *group_name, const char* path){
   // List the contents of the directory
   struct dirent *entry;
   char response[4096] = "";
+  int has_content = 0;
   strcat(response, "folder's content: \n");
   while((entry = readdir(dir)) != NULL) {
-    // Skip "." and ".."
-    if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-      continue;
+    if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+      strcat(response, entry->d_name);
+      strcat(response, "\n");
+      has_content = 1;
     }
-
-    // Append the entry name to the response
-    strcat(response, entry->d_name);
-    strcat(response, "\n");
   }
   closedir(dir);
+  
+  if (!has_content) {
+    send_response(client_socket, "Folder is empty");
+    return;
+  } 
 
   // Send the response back to the client
   send(client_socket, response, strlen(response), 0);

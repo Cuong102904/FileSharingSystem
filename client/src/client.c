@@ -56,7 +56,7 @@ int main() {
   server_addr.sin_port = htons(PORT);
 
   // Change IP address
-  if (inet_pton(AF_INET, "192.168.226.225", &server_addr.sin_addr) <= 0) {
+  if (inet_pton(AF_INET, "127.0.0.0", &server_addr.sin_addr) <= 0) {
     perror("Invalid address");
     close(client_socket);
     exit(EXIT_FAILURE);
