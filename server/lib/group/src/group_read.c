@@ -5,9 +5,11 @@
 #include <string.h>
 
 int find_group_by_name(const char *group_name) {
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
     perror("Cannot open groups.txt");
+    pthread_rwlock_unlock(&group_db_rwlock);
     return -1;
   }
 
@@ -18,11 +20,13 @@ int find_group_by_name(const char *group_name) {
     sscanf(line, "%s", stored_group_name);
     if (strcmp(stored_group_name, group_name) == 0) {
       fclose(file);
+      pthread_rwlock_unlock(&group_db_rwlock);
       return 1; // found
     }
   }
 
   fclose(file);
+  pthread_rwlock_unlock(&group_db_rwlock);
   return 0; // not found
 }
 
@@ -30,11 +34,11 @@ char *group_list_all_by_user(const char *member_name) {
   char *res = (char *)malloc(1024 * sizeof(char));
   res[0] = '\0'; // Initialize as empty string
 
-  pthread_mutex_lock(&group_db_mutex);
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
     perror("Cannot open groups.txt");
-    pthread_mutex_unlock(&group_db_mutex);
+    pthread_rwlock_unlock(&group_db_rwlock);
     return res;
   }
 
@@ -63,14 +67,16 @@ char *group_list_all_by_user(const char *member_name) {
   }
 
   fclose(file);
-  pthread_mutex_unlock(&group_db_mutex);
+  pthread_rwlock_unlock(&group_db_rwlock);
   return res;
 }
 
 // Check if user is member of group (owner or member role)
 int is_user_in_group(const char *group_name, const char *username) {
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
+    pthread_rwlock_unlock(&group_db_rwlock);
     return 0;
   }
 
@@ -81,12 +87,14 @@ int is_user_in_group(const char *group_name, const char *username) {
       if (strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0 &&
           (strcmp(role_str, "owner") == 0 || strcmp(role_str, "member") == 0)) {
         fclose(file);
+        pthread_rwlock_unlock(&group_db_rwlock);
         return 1; // user is in group
       }
     }
   }
 
   fclose(file);
+  pthread_rwlock_unlock(&group_db_rwlock);
   return 0; // user not in group
 }
 
@@ -95,11 +103,11 @@ char *group_list_members(const char *group_name) {
   char *res = (char *)malloc(2048 * sizeof(char));
   res[0] = '\0';
 
-  pthread_mutex_lock(&group_db_mutex);
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
     perror("Cannot open groups.txt");
-    pthread_mutex_unlock(&group_db_mutex);
+    pthread_rwlock_unlock(&group_db_rwlock);
     strcpy(res, "ERROR Cannot read database");
     return res;
   }
@@ -120,7 +128,7 @@ char *group_list_members(const char *group_name) {
   }
 
   fclose(file);
-  pthread_mutex_unlock(&group_db_mutex);
+  pthread_rwlock_unlock(&group_db_rwlock);
 
   if (found == 0) {
     strcpy(res, ""); // empty means group not found
@@ -131,8 +139,10 @@ char *group_list_members(const char *group_name) {
 
 // Check if user has pending request for group
 int is_user_pending(const char *group_name, const char *username) {
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
+    pthread_rwlock_unlock(&group_db_rwlock);
     return 0;
   }
 
@@ -143,19 +153,23 @@ int is_user_pending(const char *group_name, const char *username) {
       if (strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0 &&
           strcmp(role_str, "pending") == 0) {
         fclose(file);
+        pthread_rwlock_unlock(&group_db_rwlock);
         return 1; // user has pending request
       }
     }
   }
 
   fclose(file);
+  pthread_rwlock_unlock(&group_db_rwlock);
   return 0;
 }
 
 // Check if user is owner of group
 int is_user_owner(const char *group_name, const char *username) {
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
+    pthread_rwlock_unlock(&group_db_rwlock);
     return 0;
   }
 
@@ -166,19 +180,23 @@ int is_user_owner(const char *group_name, const char *username) {
       if (strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0 &&
           strcmp(role_str, "owner") == 0) {
         fclose(file);
+        pthread_rwlock_unlock(&group_db_rwlock);
         return 1; // user is owner
       }
     }
   }
 
   fclose(file);
+  pthread_rwlock_unlock(&group_db_rwlock);
   return 0;
 }
 
 // Check if user has been invited
 int is_user_invited(const char *group_name, const char *username) {
+  pthread_rwlock_rdlock(&group_db_rwlock);
   FILE *file = fopen(GROUP_DB, "r");
   if (file == NULL) {
+    pthread_rwlock_unlock(&group_db_rwlock);
     return 0;
   }
 
@@ -189,11 +207,13 @@ int is_user_invited(const char *group_name, const char *username) {
       if (strcmp(g_name, group_name) == 0 && strcmp(u_name, username) == 0 &&
           strcmp(role_str, "invited") == 0) {
         fclose(file);
+        pthread_rwlock_unlock(&group_db_rwlock);
         return 1; // user has been invited
       }
     }
   }
 
   fclose(file);
+  pthread_rwlock_unlock(&group_db_rwlock);
   return 0;
 }

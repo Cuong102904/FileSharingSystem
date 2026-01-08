@@ -16,7 +16,11 @@ typedef enum {
   GROUP_REPO_ERR_UNKNOWN    // unexpected error
 } GroupRepoStatus;
 
-extern pthread_mutex_t group_db_mutex;
+extern pthread_rwlock_t group_db_rwlock;
+
+// Initialize and cleanup group module
+void init_group_rwlock(void);
+void destroy_group_rwlock(void);
 
 int group_create(const char *group_name, const char *user_name);
 char *group_list_all_by_user(const char *member_name);
@@ -27,7 +31,7 @@ int user_is_group_member(const char *username, const char *group_name);
 int is_user_in_group(const char *group_name, const char *username);
 
 // List all members of a group (returns allocated string, caller must free)
-char* group_list_members(const char *group_name);
+char *group_list_members(const char *group_name);
 
 // Check if user has pending request for group
 int is_user_pending(const char *group_name, const char *username);
