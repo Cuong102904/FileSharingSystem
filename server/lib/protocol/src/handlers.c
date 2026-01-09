@@ -431,6 +431,60 @@ void handle_kick_member(int client_socket, const char *group_name, const char *m
 
 }
 
+// Helper function to generate unique filename if file already exists
+// Returns 0 on success, -1 on error
+// Example: "file.txt" -> "file (1).txt" -> "file (2).txt"
+static int generate_unique_filename(char *result, size_t result_size,
+                                     const char *base_path, const char *filename) {
+  struct stat st;
+
+  // First, try the original filename
+  snprintf(result, result_size, "%s/%s", base_path, filename);
+  if (stat(result, &st) != 0) {
+    // File doesn't exist, use original name
+    return 0;
+  }
+
+  // File exists, need to add index
+  // Extract filename without extension and extension
+  char name_only[256];
+  char extension[64] = "";
+
+  const char *dot = strrchr(filename, '.');
+  if (dot && dot != filename) {
+    // Has extension
+    size_t name_len = dot - filename;
+    if (name_len >= sizeof(name_only)) {
+      return -1; // Filename too long
+    }
+    strncpy(name_only, filename, name_len);
+    name_only[name_len] = '\0';
+    strncpy(extension, dot, sizeof(extension) - 1);
+    extension[sizeof(extension) - 1] = '\0';
+  } else {
+    // No extension
+    strncpy(name_only, filename, sizeof(name_only) - 1);
+    name_only[sizeof(name_only) - 1] = '\0';
+  }
+
+  // Try indices from 1 to 999
+  for (int index = 1; index < 1000; index++) {
+    if (strlen(extension) > 0) {
+      snprintf(result, result_size, "%s/%s (%d)%s", base_path, name_only, index, extension);
+    } else {
+      snprintf(result, result_size, "%s/%s (%d)", base_path, name_only, index);
+    }
+
+    if (stat(result, &st) != 0) {
+      // This filename doesn't exist, use it
+      return 0;
+    }
+  }
+
+  // Couldn't find unique name after 999 attempts
+  return -1;
+}
+
 void handle_upload(int client_socket, const char *group_name,
                    const char *client_path, const char *server_path) {
   char full_path[512];
@@ -474,8 +528,15 @@ void handle_upload(int client_socket, const char *group_name,
     return;
   }
 
-  snprintf(full_path, sizeof(full_path), "storage/%s/%s/%s", group_name,
-           server_path, filename);
+  // Construct base directory path
+  char base_dir[512];
+  snprintf(base_dir, sizeof(base_dir), "storage/%s/%s", group_name, server_path);
+
+  // Generate unique filename (adds (1), (2), etc. if file exists)
+  if (generate_unique_filename(full_path, sizeof(full_path), base_dir, filename) != 0) {
+    send_response(client_socket, "ERROR Cannot generate unique filename");
+    return;
+  }
 
   strncpy(dir_path, full_path, sizeof(dir_path) - 1);
   dir_path[sizeof(dir_path) - 1] = '\0';
