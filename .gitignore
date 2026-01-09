@@ -101,3 +101,6 @@ storage/
 
 # Test
 test.txt
+
+.vscode/
+.cursor/

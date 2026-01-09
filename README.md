@@ -2,60 +2,115 @@
 
 A modular TCP-based file sharing system with client-server architecture. Supports user authentication, session management, and chunk-based streaming file upload.
 
-**Status:** 🚧 In Development - Upload module implemented, Download not yet available
 
----
 
-## 📋 Current Features
 
-✅ **Authentication**
-  - User registration (`REGISTER`)
-  - Login with session ID (`LOGIN`)
-  - Logout (`LOGOUT`)
 
-✅ **File Upload**
-  - Chunk-based streaming (4KB chunks)
-  - Large file support (no RAM limitation)
-  - Handshake protocol (UPLOAD_READY → chunks → UPLOAD_COMPLETE)
-
-❌ **Not Yet Implemented**
-  - Download functionality
-  - Group management
-  - File permissions
-  - Resume capability
-
----
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 FileSharingSystem/
+├── Makefile                    # Unified build system
 ├── client/
-│   ├── lib/file_ops/          # Upload module (reusable)
-│   │   ├── include/file_upload.h
-│   │   └── src/file_upload.c
-│   └── src/client.c            # Main client (CLI)
+│   ├── include/               # Client headers
+│   ├── lib/file_ops/          # File upload/download modules
+│   │   ├── include/
+│   │   └── src/
+│   └── src/client.c           # Main client application
 │
 ├── server/
-│   ├── lib/                    # Reusable libraries
-│   │   ├── auth/              # Authentication (register, login)
-│   │   ├── session/           # Session management
-│   │   ├── protocol/          # Protocol parser
-│   │   └── file_ops/          # File transfer (upload)
-│   └── src/server.c            # Main server (accept, routing)
-│
-└── docs/
-    ├── REFACTORING_SUMMARY.md  # Technical overview
-    └── client_refactoring.md   # Detailed implementation docs
+│   ├── include/               # Server headers
+│   ├── lib/                   # Modular server libraries
+│   │   ├── auth/             # User authentication (register, login)
+│   │   ├── session/          # Session management
+│   │   ├── client_session/   # Client state tracking
+│   │   ├── protocol/         # Command parser & handlers
+│   │   ├── file_ops/         # File transfer operations
+│   │   ├── group/            # Group management
+│   │   ├── thread_pool/      # Worker thread pool
+│   │   ├── logger/           # Logging system
+│   │   └── utils/            # Utility functions
+│   ├── src/server.c          # Main server (epoll event loop)
+│   ├── database/             # User data storage (created at runtime)
+│   └── storage/              # Uploaded files (created at runtime)
 ```
 
-**Architecture:** Modular design following `structure.md`
-- `lib/` = Reusable business logic
-- `src/` = Network orchestration
+**Architecture:** Modular design with separation of concerns
+- `lib/` = Reusable business logic modules
+- `src/` = Network orchestration and event loop
 
 ---
 
-## 🚀 Quick Start
+## Dependencies
+
+**Required Libraries:**
+- `pthread` - POSIX threads for thread pool
+- `sys/socket.h`, `arpa/inet.h` - TCP socket APIs
+- `sys/epoll.h` (Linux) or `sys/event.h` (macOS) - I/O multiplexing
+- Standard C library (stdio, stdlib, string, etc.)
+
+**Build Tools:**
+- GCC 7.0+ or compatible C compiler
+- GNU Make
+
+**Note:** No external dependencies required. Pure C implementation.
+
+---
+
+## Server Architecture
+
+### TCP Server
+- Non-blocking TCP socket listening on **port 8080**
+- Supports up to **100 concurrent clients**
+- Uses `SO_REUSEADDR` for quick restart
+
+### epoll-based I/O Multiplexing
+- **Event-driven architecture** using `epoll` (Linux) or `kqueue` (macOS)
+- **EPOLLONESHOT mode** prevents race conditions
+- Main thread handles `accept()` and `recv()`, delegates processing to thread pool
+- Sockets re-armed after each command processing
+
+### Thread Pool Design
+- **10 worker threads** created at startup
+- **Circular task queue** (max 1024 tasks)
+- Mutex-protected with condition variables
+- Workers block until tasks available
+- Each task processes one client command
+
+### Message Protocol
+**Text-based command protocol:**
+```
+Format: COMMAND arg1 arg2 arg3...
+Example: UPLOAD group1 /path/to/file.txt storage/
+```
+
+**Supported Commands (18+):**
+- **Auth**: `REGISTER`, `LOGIN`, `LOGOUT`
+- **Files**: `UPLOAD`, `DOWNLOAD`, `MKDIR`, `LS`, `COPYFILE`, `MOVEFILE`, `DELETEFILE`, `RENAMEFILE`
+- **Folders**: `COPYFOLDER`, `MOVEFOLDER`, `DELETEFOLDER`, `RENAMEFOLDER`
+- **Groups**: `CREATE_GROUP`, `LIST_GROUPS`, `LIST_MEMBERS`, `JOIN_REQ`, `APPROVE_JOIN`, `INVITE_USER`, `RESPOND_INVITE`, `LEAVE_GROUP`, `KICK_MEMBER`
+
+**Response Format:**
+```
+Success: OK COMMAND_NAME [data]
+Error: ERROR Description
+```
+
+### Command Handling Flow
+1. `epoll_wait()` detects client data ready
+2. Main thread `recv()` command into buffer
+3. Task created with `{client_socket, buffer, epoll_fd}`
+4. Task queued to thread pool
+5. Worker thread:
+   - Parses command using `sscanf()`
+   - Validates login state
+   - Dispatches to handler function
+   - Sends response to client
+   - Re-arms socket with `EPOLLONESHOT`
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
@@ -74,7 +129,7 @@ make --version
 
 ---
 
-### 1️⃣ Build the Project
+### Build the Project
 
 ```bash
 make clean && make
@@ -86,7 +141,7 @@ This will build both server and client:
 
 ---
 
-### 2️⃣ Run the Server
+### Run the Server
 
 **Terminal 1: Start Server**
 ```bash
@@ -95,8 +150,19 @@ make run-server
 
 Expected output:
 ```
+Creating runtime directories...
+✓ Setup complete (database/ and storage/)
+Starting server...
+Client session module initialized.
 Server modules initialized.
-Server listening on port 8080...
+Thread pool created with 10 workers
+Server listening on port 8080 (IO Multiplexing + Thread Pool)
+Event loop started (epoll)
+```
+
+When a client connects, you'll see:
+```
+Client connected: socket 6
 ```
 
 Server will:
@@ -106,7 +172,7 @@ Server will:
 
 ---
 
-### 3️⃣ Run the Client
+### Run the Client
 
 **Terminal 2: Start Client**
 ```bash
@@ -120,17 +186,35 @@ Connected to server successfully!
 Available commands:
 1. REGISTER <username> <password>
 2. LOGIN <username> <password>
-3. LOGOUT <session_id>
-4. UPLOAD <local_filepath> [server_path]
-5. QUIT (to exit)
+3. LOGOUT
+4. CREATE_GROUP <group_name>
+5. LIST_GROUPS
+6. LIST_MEMBERS <group_name>
+7. KICK_MEMBER <group_name> <user_name>
+8. RESPOND_INVITE <group_name> <status>
+9. JOIN_REQ <group_name>
+10. APPROVE_JOIN <group_name> <user_name>
+11. INVITE_USER <group_name> <user_name>
+12. UPLOAD <group_name> <local_path> <remote_path>
+13. LEAVE_GROUP <group_name>
+14. DOWNLOAD <group_name> <path_on_server> <local_save_path>
+15. MKDIR <group_name> <path>
+16. LS <group_name> <path>
+17. COPYFILE <group_name> <source_file> <dest_file>
+18. COPYFOLDER <group_name> <source_folder> <dest_folder>
+19. MOVEFILE <group_name> <source_file> <dest_folder>/
+20. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/
+21. DELETEFILE <group_name> <file_path>
+22. RENAMEFILE <group_name> <old_name> <new_name>
+23. DELETEFOLDER <group_name> <folder_path>
+24. RENAMEFOLDER <group_name> <old_name> <new_name>
+*. QUIT (to exit)
 ==================================
-
-Enter command:
 ```
 
 ---
 
-## 📝 Usage Examples
+## Usage Examples
 
 ### Example 1: Register and Login
 
@@ -198,15 +282,15 @@ Server response: OK UPLOAD_COMPLETE
 
 ---
 
-## 🔧 Advanced Usage
+## Advanced Usage
 
 ### Running on Different IP/Port
 
 **Edit `client/src/client.c`:**
 ```c
-// Line ~156
-if (inet_pton(AF_INET, "192.168.1.100", &server_addr.sin_addr) <= 0) {
-    //                   ^^^^^^^^^^^^^^ Change to your server IP
+// Line 63
+if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0) {
+    //                   ^^^^^^^^^^ Change to your server IP (e.g., "192.168.1.100")
 ```
 
 **Edit `server/include/server.h` or `server/src/server.c`:**
@@ -218,25 +302,27 @@ Then recompile both client and server.
 
 ### Multiple Clients
 
-You can run multiple clients simultaneously:
+You can run multiple clients simultaneously from different terminals or different machines:
 
 ```bash
-# Terminal 2
-./client/bin/client
+# Terminal 2 (or Machine 1)
+make run-client
+> REGISTER alice pass123
 > LOGIN alice pass123
-> UPLOAD file1.txt
+> UPLOAD group1 file1.txt docs/
 
-# Terminal 3
-./client/bin/client
+# Terminal 3 (or Machine 2)
+make run-client
+> REGISTER bob pass456
 > LOGIN bob pass456
-> UPLOAD file2.txt
+> UPLOAD group1 file2.txt docs/
 ```
 
-**⚠️ Warning:** Uploading same filename concurrently has a race condition bug (see Known Issues).
+**Warning:** Uploading same filename concurrently has a race condition bug (see Known Issues).
 
 ---
 
-## 🐛 Known Issues
+## Known Issues
 
 ### 1. Concurrent Upload Race Condition
 **Problem:** Two users uploading same filename → File corruption
@@ -256,88 +342,13 @@ See `REFACTORING_SUMMARY.md` for detailed technical issues.
 
 ---
 
-## 📚 Documentation
 
-- **`REFACTORING_SUMMARY.md`** - Technical overview, stream transmission mechanism, limitations
-- **`docs/client_refactoring.md`** - Detailed code walkthrough, implementation details
-- **`structure.md`** - Project architecture guidelines
-- **`guildline.md`** - Development requirements and protocol specification
 
----
 
-## 🧪 Testing
 
-### Test Basic Upload
-```bash
-# Terminal 1: Server
-./server/bin/server
 
-# Terminal 2: Client
-./client/bin/client
-> REGISTER test test123
-> LOGIN test test123
-> UPLOAD README.md
 
-# Verify
-ls -lh server/storage/README.md
-```
-
-### Test Large File
-```bash
-dd if=/dev/urandom of=random.bin bs=1M count=500  # Create 500MB file
-./client/bin/client
-> LOGIN test test123
-> UPLOAD random.bin  # Should complete without errors
-```
-
-### Test Error Handling
-```bash
-> UPLOAD nonexistent.txt
-# Expected: Error: File 'nonexistent.txt' not found.
-
-> UPLOAD /etc/passwd
-# Server should reject (security check)
-```
-
----
-
-## 🛠️ Development
-
-### Adding a New Feature
-
-**Example: Add file listing**
-
-1. **Create library module:**
-   ```bash
-   mkdir -p server/lib/file_list/{include,src}
-   ```
-
-2. **Define interface in header:**
-   ```c
-   // server/lib/file_list/include/file_list.h
-   void handle_list_files(int client_socket);
-   ```
-
-3. **Implement in source:**
-   ```c
-   // server/lib/file_list/src/file_list.c
-   #include "../include/file_list.h"
-   void handle_list_files(int client_socket) { ... }
-   ```
-
-4. **Add to protocol parser:**
-   ```c
-   // server/lib/protocol/src/parser.c
-   case CMD_LIST: handle_list_files(socket); break;
-   ```
-
-5. **Update Makefile** to include new files
-
-See `structure.md` for detailed modular architecture guidelines.
-
----
-
-## 🧹 Cleanup
+## Cleanup
 
 ### Remove Build Artifacts
 ```bash
@@ -354,60 +365,5 @@ rm -rf server/database/*  # Remove all users
 rm -rf server/storage/*   # Remove all uploaded files
 ```
 
----
 
-## 🎯 Roadmap
-
-- [ ] Fix race condition (concurrent uploads)
-- [ ] Add timeout handling (recv/send)
-- [ ] Implement download functionality
-- [ ] Add progress bar for uploads
-- [ ] File integrity checks (MD5/SHA256)
-- [ ] Resume capability for interrupted uploads
-- [ ] Group-based file sharing
-- [ ] File permissions and access control
-
----
-
-## 📄 License
-
-Educational project for Network Programming course.
-
----
-
-## 🆘 Troubleshooting
-
-### "Connection refused"
-- **Cause:** Server not running
-- **Solution:** Start server first: `./server/bin/server`
-
-### "Address already in use"
-- **Cause:** Port 8080 already occupied
-- **Solution:** 
-  ```bash
-  # Find process using port 8080
-  sudo lsof -i :8080
-  # Kill it
-  sudo kill -9 <PID>
-  ```
-
-### "File open error" on server
-- **Cause:** Permission issues with `storage/` directory
-- **Solution:**
-  ```bash
-  mkdir -p server/storage
-  chmod 755 server/storage
-  ```
-
-### Compile errors
-- **Cause:** Missing headers or wrong paths
-- **Solution:** Ensure you're in correct directory and using exact build commands above
-
----
-
-## 📞 Support
-
-For technical details about implementation, see documentation in `docs/` folder.
-
-For protocol specification, see `guildline.md`.
 
