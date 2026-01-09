@@ -224,8 +224,8 @@ Enter command: REGISTER alice password123
 Server response: OK REGISTER
 
 Enter command: LOGIN alice password123
-Server response: OK LOGIN a3f2b4c5...  # Session ID
-Session ID saved: a3f2b4c5...
+Server response: OK LOGIN alice
+Logged in as: alice
 ```
 
 ### Example 2: Upload a File
