@@ -147,3 +147,17 @@ int validate_path_type(const char *full_path, int expect_file) {
 
   return 0; // Matches expectation
 }
+
+int delete_directory_recursive(const char *path) {
+  char cmd[2048];
+  snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", path);
+
+  int result = system(cmd);
+  if (result != 0) {
+    fprintf(stderr, "Delete directory failed: %s (exit code: %d)\n",
+            path, WEXITSTATUS(result));
+    return -1;
+  }
+
+  return 0;
+}

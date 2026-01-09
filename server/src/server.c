@@ -90,6 +90,10 @@ static const char* command_type_to_string(CommandType cmd_type) {
     case CMD_COPYFOLDER: return "COPYFOLDER";
     case CMD_MOVEFILE: return "MOVEFILE";
     case CMD_MOVEFOLDER: return "MOVEFOLDER";
+    case CMD_DELETEFILE: return "DELETEFILE";
+    case CMD_RENAMEFILE: return "RENAMEFILE";
+    case CMD_DELETEFOLDER: return "DELETEFOLDER";
+    case CMD_RENAMEFOLDER: return "RENAMEFOLDER";
     case CMD_UNKNOWN: return "UNKNOWN";
     default: return "UNKNOWN";
   }
@@ -230,6 +234,24 @@ static void process_request(void *arg) {
         handle_movefolder(client_socket, cmd.payload.movefolder.group,
                           cmd.payload.movefolder.source,
                           cmd.payload.movefolder.destination);
+        break;
+    case CMD_DELETEFILE:
+        handle_deletefile(client_socket, cmd.payload.deletefile.group,
+                          cmd.payload.deletefile.path);
+        break;
+    case CMD_RENAMEFILE:
+        handle_renamefile(client_socket, cmd.payload.renamefile.group,
+                          cmd.payload.renamefile.old_name,
+                          cmd.payload.renamefile.new_name);
+        break;
+    case CMD_DELETEFOLDER:
+        handle_deletefolder(client_socket, cmd.payload.deletefolder.group,
+                            cmd.payload.deletefolder.path);
+        break;
+    case CMD_RENAMEFOLDER:
+        handle_renamefolder(client_socket, cmd.payload.renamefolder.group,
+                            cmd.payload.renamefolder.old_name,
+                            cmd.payload.renamefolder.new_name);
         break;
     default:
         send_response(client_socket, RESP_ERR_UNKNOWN_CMD);

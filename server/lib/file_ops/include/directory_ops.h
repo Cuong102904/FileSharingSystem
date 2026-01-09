@@ -53,4 +53,11 @@ int is_folder_path(const char *path);
  */
 int validate_path_type(const char *full_path, int expect_file);
 
+/**
+ * Delete directory recursively
+ * @param path Full path to directory
+ * @return 0 on success, -1 on error
+ */
+int delete_directory_recursive(const char *path);
+
 #endif // DIRECTORY_OPS_H

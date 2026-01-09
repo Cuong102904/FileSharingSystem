@@ -36,6 +36,10 @@ const char menu[] =
     "18. COPYFOLDER <group_name> <source_folder> <dest_folder>\n"
     "19. MOVEFILE <group_name> <source_file> <dest_folder>/\n"
     "20. MOVEFOLDER <group_name> <source_folder> <dest_parent_folder>/\n"
+    "21. DELETEFILE <group_name> <file_path>\n"
+    "22. RENAMEFILE <group_name> <old_name> <new_name>\n"
+    "23. DELETEFOLDER <group_name> <folder_path>\n"
+    "24. RENAMEFOLDER <group_name> <old_name> <new_name>\n"
     "*. QUIT (to exit)\n"
     "==================================\n\n";
 

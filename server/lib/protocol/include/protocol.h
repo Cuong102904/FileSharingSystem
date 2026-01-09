@@ -25,6 +25,10 @@ typedef enum {
   CMD_COPYFOLDER,
   CMD_MOVEFILE,
   CMD_MOVEFOLDER,
+  CMD_DELETEFILE,
+  CMD_RENAMEFILE,
+  CMD_DELETEFOLDER,
+  CMD_RENAMEFOLDER,
   CMD_UNKNOWN
 } CommandType;
 
@@ -75,6 +79,24 @@ typedef struct {
     struct {
       char group[256];
       char path[256];
+    } deletefile; // DELETEFILE
+    struct {
+      char group[256];
+      char old_name[256];
+      char new_name[256];
+    } renamefile; // RENAMEFILE
+    struct {
+      char group[256];
+      char path[256];
+    } deletefolder; // DELETEFOLDER
+    struct {
+      char group[256];
+      char old_name[256];
+      char new_name[256];
+    } renamefolder; // RENAMEFOLDER
+    struct {
+      char group[256];
+      char path[256];
     } viewfolder; // VIEWFOLDER
     struct {
       char group_name[256];
@@ -98,6 +120,10 @@ typedef struct {
 #define RESP_OK_COPYFOLDER "OK COPYFOLDER"
 #define RESP_OK_MOVEFILE "OK MOVEFILE"
 #define RESP_OK_MOVEFOLDER "OK MOVEFOLDER"
+#define RESP_OK_DELETEFILE "OK DELETEFILE"
+#define RESP_OK_RENAMEFILE "OK RENAMEFILE"
+#define RESP_OK_DELETEFOLDER "OK DELETEFOLDER"
+#define RESP_OK_RENAMEFOLDER "OK RENAMEFOLDER"
 #define RESP_OK_CREATE_GROUP "OK CREATE_GROUP"
 #define RESP_ERR_GROUPNAME_EXISTS "ERROR Group name already exists"
 #define RESP_OK_LIST_GROUP "OK LIST_GROUP"
@@ -164,6 +190,14 @@ void handle_movefile(int client_socket, const char *group_name,
                      const char *source, const char *destination);
 void handle_movefolder(int client_socket, const char *group_name,
                        const char *source, const char *destination);
+void handle_deletefile(int client_socket, const char *group_name,
+                       const char *path);
+void handle_renamefile(int client_socket, const char *group_name,
+                       const char *old_name, const char *new_name);
+void handle_deletefolder(int client_socket, const char *group_name,
+                         const char *path);
+void handle_renamefolder(int client_socket, const char *group_name,
+                         const char *old_name, const char *new_name);
 
 // Send response to client
 void send_response(int client_socket, const char *response);

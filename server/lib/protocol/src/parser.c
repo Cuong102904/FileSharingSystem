@@ -105,6 +105,26 @@ CommandType protocol_parse_command(const char *buffer, ParsedCommand *cmd) {
     cmd->type = CMD_KICK_MEMBER;
     sscanf(buffer, "%*s %s %s", cmd->payload.group.group_name, cmd->payload.group.user_name);
     return CMD_KICK_MEMBER;
+  } else if (strcmp(command, "DELETEFILE") == 0) {
+    cmd->type = CMD_DELETEFILE;
+    sscanf(buffer, "%*s %s %s", cmd->payload.deletefile.group,
+           cmd->payload.deletefile.path);
+    return CMD_DELETEFILE;
+  } else if (strcmp(command, "RENAMEFILE") == 0) {
+    cmd->type = CMD_RENAMEFILE;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.renamefile.group,
+           cmd->payload.renamefile.old_name, cmd->payload.renamefile.new_name);
+    return CMD_RENAMEFILE;
+  } else if (strcmp(command, "DELETEFOLDER") == 0) {
+    cmd->type = CMD_DELETEFOLDER;
+    sscanf(buffer, "%*s %s %s", cmd->payload.deletefolder.group,
+           cmd->payload.deletefolder.path);
+    return CMD_DELETEFOLDER;
+  } else if (strcmp(command, "RENAMEFOLDER") == 0) {
+    cmd->type = CMD_RENAMEFOLDER;
+    sscanf(buffer, "%*s %s %s %s", cmd->payload.renamefolder.group,
+           cmd->payload.renamefolder.old_name, cmd->payload.renamefolder.new_name);
+    return CMD_RENAMEFOLDER;
   } else{
     cmd->type = CMD_UNKNOWN;
     return CMD_UNKNOWN;
