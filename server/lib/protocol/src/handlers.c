@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
 
 void send_response(int client_socket, const char *response) {
   send(client_socket, response, strlen(response), 0);
@@ -1013,4 +1014,357 @@ void handle_movefolder(int client_socket, const char *group_name,
   }
 
   send_response(client_socket, RESP_OK_MOVEFOLDER);
+}
+
+void handle_deletefile(int client_socket, const char *group_name,
+                       const char *path) {
+  char full_path[512];
+
+  // Security checks - prevent directory traversal
+  if (strstr(path, "..") || strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path (directory traversal detected)");
+    return;
+  }
+
+  // Validate input is not empty
+  if (path == NULL || strlen(path) == 0) {
+    send_response(client_socket, "ERROR Path cannot be empty");
+    return;
+  }
+
+  if (group_name == NULL || strlen(group_name) == 0) {
+    send_response(client_socket, "ERROR Group name cannot be empty");
+    return;
+  }
+
+  // Validate path is a file (has extension)
+  if (!is_file_path(path)) {
+    send_response(client_socket, "ERROR Path must be a file (use DELETEFOLDER for directories)");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check user is member of group
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct full path
+  snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name, path);
+
+  // Check file exists AND is actually a file (not directory)
+  if (validate_path_type(full_path, 1) != 0) {
+    send_response(client_socket, RESP_ERR_FILE_NOT_FOUND);
+    return;
+  }
+
+  // Attempt to delete file
+  if (unlink(full_path) != 0) {
+    // Check specific error reasons
+    if (errno == EACCES) {
+      send_response(client_socket, "ERROR Permission denied (cannot delete file)");
+    } else if (errno == EBUSY) {
+      send_response(client_socket, "ERROR File is in use (cannot delete)");
+    } else if (errno == EROFS) {
+      send_response(client_socket, "ERROR Read-only filesystem");
+    } else {
+      send_response(client_socket, "ERROR Failed to delete file");
+    }
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_DELETEFILE);
+}
+
+void handle_renamefile(int client_socket, const char *group_name,
+                       const char *old_name, const char *new_name) {
+  char old_path[512], new_path[512];
+
+  // Security checks - prevent directory traversal
+  if (strstr(old_name, "..") || strstr(new_name, "..") || strstr(group_name, "..")) {
+    send_response(client_socket, "ERROR Invalid path (directory traversal detected)");
+    return;
+  }
+
+  // Validate inputs are not empty
+  if (old_name == NULL || strlen(old_name) == 0) {
+    send_response(client_socket, "ERROR Old filename cannot be empty");
+    return;
+  }
+
+  if (new_name == NULL || strlen(new_name) == 0) {
+    send_response(client_socket, "ERROR New filename cannot be empty");
+    return;
+  }
+
+  if (group_name == NULL || strlen(group_name) == 0) {
+    send_response(client_socket, "ERROR Group name cannot be empty");
+    return;
+  }
+
+  // Validate both paths are files (have extensions)
+  if (!is_file_path(old_name)) {
+    send_response(client_socket, "ERROR Old name must be a file path (use RENAMEFOLDER for directories)");
+    return;
+  }
+
+  if (!is_file_path(new_name)) {
+    send_response(client_socket, "ERROR New name must be a file path");
+    return;
+  }
+
+  // Check if trying to rename to same name
+  if (strcmp(old_name, new_name) == 0) {
+    send_response(client_socket, "ERROR New name is the same as old name");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check user is member of group
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct full paths
+  snprintf(old_path, sizeof(old_path), "storage/%s/%s", group_name, old_name);
+  snprintf(new_path, sizeof(new_path), "storage/%s/%s", group_name, new_name);
+
+  // Check source file exists AND is actually a file
+  if (validate_path_type(old_path, 1) != 0) {
+    send_response(client_socket, "ERROR Source file not found or is not a file");
+    return;
+  }
+
+  // Check destination doesn't already exist
+  struct stat st;
+  if (stat(new_path, &st) == 0) {
+    send_response(client_socket, "ERROR Destination file already exists");
+    return;
+  }
+
+  // Check destination parent directory exists
+  if (check_parent_directory_exists(new_path) != 0) {
+    send_response(client_socket, "ERROR Destination folder not found (use MKDIR first)");
+    return;
+  }
+
+  // Attempt to rename file
+  if (rename(old_path, new_path) != 0) {
+    // Check specific error reasons
+    if (errno == EACCES || errno == EPERM) {
+      send_response(client_socket, "ERROR Permission denied (cannot rename file)");
+    } else if (errno == EBUSY) {
+      send_response(client_socket, "ERROR File is in use (cannot rename)");
+    } else if (errno == EXDEV) {
+      send_response(client_socket, "ERROR Cannot rename across different filesystems");
+    } else if (errno == EROFS) {
+      send_response(client_socket, "ERROR Read-only filesystem");
+    } else if (errno == ENOSPC) {
+      send_response(client_socket, "ERROR No space left on device");
+    } else {
+      send_response(client_socket, "ERROR Failed to rename file");
+    }
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_RENAMEFILE);
+}
+
+void handle_deletefolder(int client_socket, const char *group_name,
+                         const char *path) {
+  char full_path[512];
+
+  // Security checks - prevent directory traversal
+  if (strstr(path, "..") || strstr(group_name, "..")) {
+    send_response(client_socket,
+                  "ERROR Invalid path (directory traversal detected)");
+    return;
+  }
+
+  // Validate input is not empty
+  if (path == NULL || strlen(path) == 0) {
+    send_response(client_socket, "ERROR Path cannot be empty");
+    return;
+  }
+
+  if (group_name == NULL || strlen(group_name) == 0) {
+    send_response(client_socket, "ERROR Group name cannot be empty");
+    return;
+  }
+
+  // Validate path is a folder (no extension)
+  if (!is_folder_path(path)) {
+    send_response(client_socket,
+                  "ERROR Path must be a folder (use DELETEFILE for files)");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check user is member of group
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct full path
+  snprintf(full_path, sizeof(full_path), "storage/%s/%s", group_name, path);
+
+  // Check folder exists AND is actually a directory (not file)
+  if (validate_path_type(full_path, 0) != 0) {
+    send_response(client_socket, RESP_ERR_FOLDER_NOT_FOUND);
+    return;
+  }
+
+  // Attempt to delete folder recursively
+  if (delete_directory_recursive(full_path) != 0) {
+    // Check specific error reasons
+    if (errno == EACCES) {
+      send_response(client_socket,
+                    "ERROR Permission denied (cannot delete folder)");
+    } else if (errno == EBUSY) {
+      send_response(client_socket, "ERROR Folder is in use (cannot delete)");
+    } else if (errno == EROFS) {
+      send_response(client_socket, "ERROR Read-only filesystem");
+    } else if (errno == ENOTEMPTY) {
+      send_response(client_socket,
+                    "ERROR Folder is not empty (internal error)");
+    } else {
+      send_response(client_socket, "ERROR Failed to delete folder");
+    }
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_DELETEFOLDER);
+}
+
+void handle_renamefolder(int client_socket, const char *group_name,
+                         const char *old_name, const char *new_name) {
+  char old_path[512], new_path[512];
+
+  // Security checks - prevent directory traversal
+  if (strstr(old_name, "..") || strstr(new_name, "..") ||
+      strstr(group_name, "..")) {
+    send_response(client_socket,
+                  "ERROR Invalid path (directory traversal detected)");
+    return;
+  }
+
+  // Validate inputs are not empty
+  if (old_name == NULL || strlen(old_name) == 0) {
+    send_response(client_socket, "ERROR Old folder name cannot be empty");
+    return;
+  }
+
+  if (new_name == NULL || strlen(new_name) == 0) {
+    send_response(client_socket, "ERROR New folder name cannot be empty");
+    return;
+  }
+
+  if (group_name == NULL || strlen(group_name) == 0) {
+    send_response(client_socket, "ERROR Group name cannot be empty");
+    return;
+  }
+
+  // Validate both paths are folders (no extensions)
+  if (!is_folder_path(old_name)) {
+    send_response(
+        client_socket,
+        "ERROR Old name must be a folder path (use RENAMEFILE for files)");
+    return;
+  }
+
+  if (!is_folder_path(new_name)) {
+    send_response(client_socket, "ERROR New name must be a folder path");
+    return;
+  }
+
+  // Check if trying to rename to same name
+  if (strcmp(old_name, new_name) == 0) {
+    send_response(client_socket, "ERROR New name is the same as old name");
+    return;
+  }
+
+  // Authentication & Authorization
+  const char *username = client_session_get_username(client_socket);
+  if (username == NULL) {
+    send_response(client_socket, RESP_ERR_NOT_LOGGED_IN);
+    return;
+  }
+
+  // Check user is member of group
+  if (!is_user_in_group(group_name, username)) {
+    send_response(client_socket, RESP_ERR_PERMISSION_DENIED);
+    return;
+  }
+
+  // Construct full paths
+  snprintf(old_path, sizeof(old_path), "storage/%s/%s", group_name, old_name);
+  snprintf(new_path, sizeof(new_path), "storage/%s/%s", group_name, new_name);
+
+  // Check source folder exists AND is actually a directory
+  if (validate_path_type(old_path, 0) != 0) {
+    send_response(client_socket,
+                  "ERROR Source folder not found or is not a folder");
+    return;
+  }
+
+  // Check destination doesn't already exist
+  struct stat st;
+  if (stat(new_path, &st) == 0) {
+    send_response(client_socket, "ERROR Destination folder already exists");
+    return;
+  }
+
+  // Check destination parent directory exists
+  if (check_parent_directory_exists(new_path) != 0) {
+    send_response(client_socket,
+                  "ERROR Destination parent folder not found (use MKDIR first)");
+    return;
+  }
+
+  // Attempt to rename folder
+  if (rename(old_path, new_path) != 0) {
+    // Check specific error reasons
+    if (errno == EACCES || errno == EPERM) {
+      send_response(client_socket,
+                    "ERROR Permission denied (cannot rename folder)");
+    } else if (errno == EBUSY) {
+      send_response(client_socket, "ERROR Folder is in use (cannot rename)");
+    } else if (errno == EXDEV) {
+      send_response(
+          client_socket,
+          "ERROR Cannot rename across different filesystems");
+    } else if (errno == EROFS) {
+      send_response(client_socket, "ERROR Read-only filesystem");
+    } else if (errno == ENOSPC) {
+      send_response(client_socket, "ERROR No space left on device");
+    } else if (errno == ENOTEMPTY || errno == EEXIST) {
+      send_response(client_socket, "ERROR Destination already exists");
+    } else {
+      send_response(client_socket, "ERROR Failed to rename folder");
+    }
+    return;
+  }
+
+  send_response(client_socket, RESP_OK_RENAMEFOLDER);
 }
